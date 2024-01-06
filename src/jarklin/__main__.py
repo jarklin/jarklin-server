@@ -5,6 +5,11 @@ r"""
 import sys
 import argparse as ap
 from . import __version__
+try:
+    import better_exceptions
+    better_exceptions.hook()
+except ModuleNotFoundError:
+    pass
 
 
 parser = ap.ArgumentParser('jarklin', description=__doc__)
