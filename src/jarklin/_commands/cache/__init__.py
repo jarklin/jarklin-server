@@ -9,6 +9,6 @@ def run() -> None:
     Cache().run()
 
 
-def remove() -> None:
+def remove(ignore_errors: bool) -> None:
     from ...cache import Cache
-    Cache().remove()
+    Cache().remove(ignore_errors=ignore_errors)
