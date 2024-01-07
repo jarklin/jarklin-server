@@ -23,7 +23,7 @@ class CacheEntry:
 
     @cached_property
     def cache_path(self) -> Path:
-        return Path(".cache").joinpath(self._path)
+        return Path(".jarklin/cache").joinpath(self._path)
 
     @cached_property
     def meta_path(self) -> Path:
