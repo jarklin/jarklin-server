@@ -5,8 +5,10 @@ r"""
 
 
 def run() -> None:
-    pass
+    from ...cache import Cache
+    Cache().run()
 
 
 def remove() -> None:
-    pass
+    from ...cache import Cache
+    Cache().remove()
