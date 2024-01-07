@@ -4,10 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+flask = "*"
+orjson = "*"
 pillow = "*"
 ffmpeg-python = "*"
 python-magic = "*"
-orjson = "*"
 
 [dev-packages]
 better-exceptions = "*"
