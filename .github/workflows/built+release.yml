@@ -1,0 +1,41 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  build:
+    permissions:
+      contents: write  # allow to create a release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: latest
+      - name: Generate requirements.txt
+        run: |
+          pip3 install -U pip
+          pip3 install -U pipenv
+          pipenv install
+          pipenv requirements > requirements.txt
+      - name: Build
+        run: ./scripts/make-build.sh
+      - name: Make Archive
+        run: tar -cvz -C dist/ -f "dist/jarklin.tgz" jarklin/
+      - name: Release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          draft: false
+          prerelease: false
+          title: "Jarklin Build"
+          files: |
+            dist/jarklin.tgz
+#            dist/jarklin.whl
+#            dist/jarklin.deb
