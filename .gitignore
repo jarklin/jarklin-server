@@ -1,3 +1,5 @@
 /.idea/
 /.venv/
 /tmp/
+/dist/
+/requirements.txt  # generated during actions

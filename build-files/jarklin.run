@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+
+THIS=$(dirname "$(realpath "$0")")
+PARENT=$(dirname "$THIS")
+PYTHON3=$(which python3)
+
+PYTHONPATH="$PYTHONPATH:$THIS/_deps/:$PARENT" "$PYTHON3" -X utf8 -BO -m jarklin "$@"
