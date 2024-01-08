@@ -4,6 +4,6 @@ r"""
 """
 
 
-def run(host: str = None, port: int = None) -> None:
+def run(host: str = None, port: int = None, development: bool = False) -> None:
     from ...web import application
-    application.run(host=host, port=port)
+    application.run(host=host, port=port, debug=development)
