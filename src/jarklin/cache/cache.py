@@ -57,7 +57,7 @@ class Cache:
                     shutil.rmtree(dest)
 
     def generate(self) -> None:
-        generators: t.List[CacheGenerator] = []
+        generator_jobs: t.List[CacheGenerator] = []
         results = []
 
         for root, dirnames, files in os.walk(self.root):
@@ -71,7 +71,7 @@ class Cache:
                     generator = GalleryCacheGenerator(source=source, dest=dest)
                     results.append(generator.meta)
                     if is_deprecated(source=source, dest=dest):
-                        generators.append(generator)
+                        generator_jobs.append(generator)
             for filename in files:
                 source = Path(root, filename)
                 dest = self.jarklin_cache.joinpath(source.relative_to(self.root))
@@ -79,9 +79,9 @@ class Cache:
                     generator = VideoCacheGenerator(source=source, dest=dest)
                     results.append(generator.meta)
                     if is_deprecated(source=source, dest=dest):
-                        generators.append(generator)
+                        generator_jobs.append(generator)
 
-        for generator in generators:
+        for generator in generator_jobs:
             if self._shutdown:
                 break
             generator.generate()

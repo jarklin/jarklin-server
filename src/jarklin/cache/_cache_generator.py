@@ -16,12 +16,13 @@ class CacheGenerator:
         if not self.source.exists():
             raise FileNotFoundError(str(self.source))
         self.dest = Path(dest)
+
+    @t.final
+    def generate(self) -> None:
         if self.dest.is_dir():
             shutil.rmtree(self.dest, ignore_errors=True)
         self.dest.mkdir(parents=True)
 
-    @t.final
-    def generate(self) -> None:
         self.generate_meta()
         self.generate_previews()
         self.generate_image_preview()
