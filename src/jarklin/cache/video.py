@@ -55,7 +55,8 @@ class VideoCacheGenerator(CacheGenerator):
                           for main in main_frames
                           for offset in scene_offsets]
 
-        scale = (self.DIMS[0], -1) if (self.stat_width > self.stat_height) else (-1, self.DIMS[1])
+        vw, vh = self.stat_width, self.stat_height
+        scale = (min(self.DIMS[0], vw), -1) if (vw > vh) else (-1, min(self.DIMS[1], vh))
 
         (
             ffmpeg
