@@ -5,17 +5,22 @@ r"""
 import typing as t
 from pathlib import Path
 from functools import cached_property
-from .._lib import json
+import orjson
+from .types import PathSource
 
 
 __all__ = ["CacheEntry"]
 
 
 class CacheEntry:
-    def __init__(self, path: str):
-        self._path = Path(path).relative_to(Path.cwd())
+    def __init__(self, path: PathSource):
+        self._path = Path(path).absolute().relative_to(Path.cwd())
         self._mtime: int = 0
         self._cached_meta: dict = {}
+
+    @classmethod
+    def from_cache_path(cls, path: PathSource) -> 'CacheEntry':
+        return CacheEntry(path=Path(path).absolute().relative_to(Path(".jarklin/cache").absolute()))
 
     @property
     def file_path(self) -> Path:
@@ -49,12 +54,16 @@ class CacheEntry:
         self.cache_path.exists()
 
     @property
+    def is_cache(self) -> bool:
+        return self.is_video or self.is_gallery
+
+    @property
     def is_video(self) -> bool:
-        return self.cache_path.joinpath("video.type").exists()
+        return self.cache_path.joinpath("video.type").is_file()
 
     @property
     def is_gallery(self) -> bool:
-        return self.cache_path.joinpath("gallery.type").exists()
+        return self.cache_path.joinpath("gallery.type").is_file()
 
     @property
     def meta(self) -> dict:
@@ -67,6 +76,6 @@ class CacheEntry:
             return self._cached_meta
 
         # load, cache and return
-        meta = self._cached_meta = json.loads(self.meta_path.read_bytes())
+        meta = self._cached_meta = orjson.loads(self.meta_path.read_bytes())
         self._mtime = mtime
         return meta
