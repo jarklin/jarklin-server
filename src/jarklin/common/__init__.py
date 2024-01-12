@@ -2,7 +2,7 @@
 r"""
 
 """
-from .cache_entry import CacheEntry
+from .types import GalleryMeta, VideoMeta
 
 
-__all__ = ['CacheEntry']
+__all__ = ['VideoMeta', 'GalleryMeta']
