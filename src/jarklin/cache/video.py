@@ -153,7 +153,8 @@ class VideoCacheGenerator(CacheGenerator):
     def meta(self) -> VideoMeta:
         return VideoMeta(
             type='video',
-            filename=self.source.name,
+            path=str(self.source),
+            name=self.source.name,
             duration=float(self.ffprobe['format']['duration']),
             width=self.main_video_stream['width'],
             height=self.main_video_stream['height'],

@@ -15,6 +15,8 @@ PathSource: _t.TypeAlias = _t.Union[str, _PathLike, _Path]
 
 class GalleryMeta(_t.TypedDict):
     type: _t.Literal['gallery']
+    name: str
+    path: str
     images: _t.List['GalleryImageMeta']
 
 
@@ -31,7 +33,8 @@ class GalleryImageMeta(_t.TypedDict):
 
 class VideoMeta(_t.TypedDict):
     type: _t.Literal['video']
-    filename: str
+    path: str
+    name: str
     width: int
     height: int
     duration: float

@@ -69,6 +69,8 @@ class GalleryCacheGenerator(CacheGenerator):
     def meta(self) -> GalleryMeta:
         return GalleryMeta(
             type='gallery',
+            path=str(self.source),
+            name=self.source.name,
             images=list(map(self.meta_for_image, self.get_relevant_files_for_source(self.source))),
         )
 
