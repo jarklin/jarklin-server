@@ -9,6 +9,11 @@ def run() -> None:
     Cache().run()
 
 
+def generate() -> None:
+    from ...cache import Cache
+    Cache().iteration()
+
+
 def remove(ignore_errors: bool) -> None:
     from ...cache import Cache
     Cache().remove(ignore_errors=ignore_errors)

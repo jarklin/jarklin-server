@@ -47,6 +47,11 @@ cache_run_parser.set_defaults(fn=commands.cache.run)
 
 # -------------------------------------------------------------------------------------------------------------------- #
 
+cache_generate_parser = cache_subparsers.add_parser('generate')
+cache_generate_parser.set_defaults(fn=commands.cache.generate)
+
+# -------------------------------------------------------------------------------------------------------------------- #
+
 cache_remove_parser = cache_subparsers.add_parser('remove')
 cache_remove_parser.set_defaults(fn=commands.cache.remove)
 cache_remove_parser.add_argument('-I', '--ignore-errors', action=ap.BooleanOptionalAction, default=False,
