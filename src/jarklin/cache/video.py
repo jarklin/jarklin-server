@@ -163,7 +163,7 @@ class VideoCacheGenerator(CacheGenerator):
                 duration=float(stream['duration']),
                 width=stream['width'],
                 height=stream['height'],
-                avg_fps=0.0,
+                avg_fps=int.__truediv__(*map(int, stream['avg_frame_rate'].split("/"))),
             ) for stream in self.video_streams],
             audio_streams=[AudioStreamMeta(
                 is_default=bool(stream['disposition']['default']),
