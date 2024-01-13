@@ -57,6 +57,11 @@ cache_remove_parser.set_defaults(fn=commands.cache.remove)
 cache_remove_parser.add_argument('-I', '--ignore-errors', action=ap.BooleanOptionalAction, default=False,
                                  help="ignore errors during removal")
 
+# -------------------------------------------------------------------------------------------------------------------- #
+
+cache_regenerate_parser = cache_subparsers.add_parser('regenerate')
+cache_regenerate_parser.set_defaults(fn=commands.cache.regenerate)
+
 # ==================================================================================================================== #
 
 util_download_web_ui_parser = subparsers.add_parser('download-web-ui')
