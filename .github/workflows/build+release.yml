@@ -30,8 +30,8 @@ jobs:
       - name: Install UI-Build
         run: |
           mkdir -p dist/jarklin/web/web-ui/
-          dest/jarklin/jarklin download-web-ui
-          tar -xf ./web-ui.tgz -C jarklin/web/web-ui/
+          ./dest/jarklin/jarklin download-web-ui --dest ./web-ui.tgz
+          tar -xf ./web-ui.tgz -C dest/jarklin/web/web-ui/
       - name: Make Archive with Web-UI
         run: tar -cvz -C dist/ jarklin/ -f "dist/jarklin.bundled.tgz"
       - name: Release
