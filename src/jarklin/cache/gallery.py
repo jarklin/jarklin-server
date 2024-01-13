@@ -67,9 +67,11 @@ class GalleryCacheGenerator(CacheGenerator):
 
     @cached_property
     def meta(self) -> GalleryMeta:
+        relevant_files = self.get_relevant_files_for_source(self.source)
         return GalleryMeta(
             type='gallery',
-            images=list(map(self.meta_for_image, self.get_relevant_files_for_source(self.source))),
+            n_previews=len(relevant_files),
+            images=list(map(self.meta_for_image, relevant_files)),
         )
 
     @staticmethod

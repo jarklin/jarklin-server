@@ -146,7 +146,7 @@ class VideoCacheGenerator(CacheGenerator):
             raise LookupError(f"video stream in {self.source} not found")
 
     @property
-    def chapters(self) -> t.Iterable[FFProbeChapter]:
+    def chapters(self) -> t.List[FFProbeChapter]:
         return self.ffprobe['chapters']
 
     @cached_property
@@ -158,6 +158,7 @@ class VideoCacheGenerator(CacheGenerator):
             width=self.main_video_stream['width'],
             height=self.main_video_stream['height'],
             filesize=self.source.stat().st_size,
+            n_previews=len(self.chapters),
             video_streams=[VideoStreamMeta(
                 is_default=bool(stream['disposition']['default']),
                 duration=float(stream['duration']),

@@ -25,6 +25,7 @@ class InfoEntry(_t.TypedDict):
 
 class GalleryMeta(_t.TypedDict):
     type: _t.Literal['gallery']
+    n_previews: int
     images: _t.List['GalleryImageMeta']
 
 
@@ -46,6 +47,7 @@ class VideoMeta(_t.TypedDict):
     height: int
     duration: float
     filesize: int
+    n_previews: int
     video_streams: _t.List['VideoStreamMeta']
     audio_streams: _t.List['AudioStreamMeta']
     subtitles: _t.List['SubtitleStreamMeta']
