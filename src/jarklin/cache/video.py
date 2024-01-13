@@ -24,7 +24,7 @@ from ._cache_generator import CacheGenerator
 class VideoCacheGenerator(CacheGenerator):
     DIMS: t.Tuple[int, int] = (512, 512)
     SECONDS_PER_SCENE: int = 2
-    SCENE_FPS: int = 5
+    SCENE_FPS: int = 10
 
     def generate_meta(self) -> None:
         import orjson
@@ -153,8 +153,7 @@ class VideoCacheGenerator(CacheGenerator):
     def meta(self) -> VideoMeta:
         return VideoMeta(
             type='video',
-            path=str(self.source),
-            name=self.source.name,
+            filename=self.source.name,
             duration=float(self.ffprobe['format']['duration']),
             width=self.main_video_stream['width'],
             height=self.main_video_stream['height'],

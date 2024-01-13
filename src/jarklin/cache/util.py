@@ -34,6 +34,13 @@ def is_gallery(fp: PathSource, boundary: int = 5) -> bool:
 
 
 def is_deprecated(source: PathSource, dest: PathSource) -> bool:
+    source = Path(source)
+    dest = Path(dest)
     if not dest.exists():
         return True
     return source.stat().st_mtime > dest.stat().st_mtime
+
+
+def is_incomplete(dest: PathSource) -> bool:
+    dest = Path(dest)
+    return next(dest.glob("*.type"), None) is None

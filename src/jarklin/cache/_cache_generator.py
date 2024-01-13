@@ -23,12 +23,16 @@ class CacheGenerator:
             shutil.rmtree(self.dest, ignore_errors=True)
         self.dest.mkdir(parents=True)
 
-        self.generate_meta()
-        self.generate_previews()
-        self.generate_image_preview()
-        self.generate_animated_preview()
-        self.generate_type()
-        self.cleanup()
+        try:
+            self.generate_meta()
+            self.generate_previews()
+            self.generate_image_preview()
+            self.generate_animated_preview()
+            self.generate_type()
+            self.cleanup()
+        except KeyboardInterrupt:
+            shutil.rmtree(self.dest, ignore_errors=True)
+            raise
 
     @abstractmethod
     def generate_meta(self) -> None: ...
