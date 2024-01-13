@@ -26,7 +26,14 @@ jobs:
       - name: Build
         run: ./scripts/make-build.sh
       - name: Make Archive
-        run: tar -cvz -C dist/ -f "dist/jarklin.tgz" jarklin/
+        run: tar -cvz -C dist/ jarklin/ -f "dist/jarklin.tgz"
+      - name: Install UI-Build
+        run: |
+          mkdir -p dist/jarklin/web/web-ui/
+          dest/jarklin/jarklin download-web-ui
+          tar -xf ./web-ui.tgz -C jarklin/web/web-ui/
+      - name: Make Archive with Web-UI
+        run: tar -cvz -C dist/ jarklin/ -f "dist/jarklin.bundled.tgz"
       - name: Release
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
@@ -37,5 +44,6 @@ jobs:
           title: "Jarklin Build"
           files: |
             dist/jarklin.tgz
+            dist/jarklin.bundled.tgz
 #            dist/jarklin.whl
 #            dist/jarklin.deb

@@ -40,4 +40,6 @@ $(sed 's/^/ /' /etc/os-release)
 cp build-files/jarklin.run dist/jarklin/jarklin
 chmod +x dist/jarklin/jarklin
 
+mkdir -p dist/jarklin/web/web-ui/
+
 echo "Build successful"
