@@ -175,9 +175,9 @@ class VideoCacheGenerator(CacheGenerator):
             ) for stream in self.subtitle_streams],
             chapters=[ChapterMeta(
                 id=chapter['id'],
-                start=chapter['start'],  # maybe start_time
+                # start=chapter['start'],
                 start_time=float(chapter['start_time']),
-                end=chapter['end'],  # maybe end_time
+                # end=chapter['end'],
                 end_time=float(chapter['end_time']),
                 title=chapter['tags']['title'],
             ) for chapter in self.chapters],

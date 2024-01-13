@@ -72,8 +72,8 @@ class SubtitleStreamMeta(_t.TypedDict):
 
 class ChapterMeta(_t.TypedDict):
     id: int
-    start: int
+    # start: int
     start_time: float
-    end: int
+    # end: int
     end_time: float
     title: str
