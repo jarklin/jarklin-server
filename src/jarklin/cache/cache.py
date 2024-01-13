@@ -58,8 +58,26 @@ class Cache:
                     shutil.rmtree(dest)
 
     def generate(self) -> None:
-        generator_jobs: t.List[CacheGenerator] = []
         info: t.List[InfoEntry] = []
+        generators: t.List[CacheGenerator] = self.find_generators()
+
+        for generator in generators:
+            source = generator.source
+            dest = generator.dest
+            if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
+                generator.generate()
+            info.append(InfoEntry(
+                path=str(source.relative_to(self.root)),
+                name=source.name,
+                ext=source.suffix,
+                meta=json.loads(dest.joinpath("meta.json").read_bytes()),
+            ))
+
+        with open(self.root.joinpath('.jarklin/info.json'), 'w') as fp:
+            fp.write(json.dumps(info))
+
+    def find_generators(self) -> t.List[CacheGenerator]:
+        generators: t.List[CacheGenerator] = []
 
         for root, dirnames, files in os.walk(self.root):
             # galleries
@@ -71,15 +89,7 @@ class Cache:
                 source = Path(root, dirname)
                 dest = self.jarklin_cache.joinpath(source.relative_to(self.root))
                 if is_gallery(source):
-                    generator = GalleryCacheGenerator(source=source, dest=dest)
-                    info.append(InfoEntry(
-                        path=str(source.relative_to(self.root)),
-                        name=source.name,
-                        ext=source.suffix,
-                        meta=generator.meta,
-                    ))
-                    if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
-                        generator_jobs.append(generator)
+                    generators.append(GalleryCacheGenerator(source=source, dest=dest))
             # videos
             for filename in files:
                 if filename.startswith("."):  # filter eg .jarklin.conf out
@@ -89,20 +99,6 @@ class Cache:
                 source = Path(root, filename)
                 dest = self.jarklin_cache.joinpath(source.relative_to(self.root))
                 if is_video_file(source):
-                    generator = VideoCacheGenerator(source=source, dest=dest)
-                    info.append(InfoEntry(
-                        path=str(source.relative_to(self.root)),
-                        name=source.name,
-                        ext=source.suffix,
-                        meta=generator.meta,
-                    ))
-                    if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
-                        generator_jobs.append(generator)
+                    generators.append(VideoCacheGenerator(source=source, dest=dest))
 
-        for generator in generator_jobs:
-            if self._shutdown:
-                break
-            generator.generate()
-
-        with open(self.root.joinpath('.jarklin/info.json'), 'w') as fp:
-            fp.write(json.dumps(info))
+        return generators
