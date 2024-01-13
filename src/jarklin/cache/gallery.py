@@ -35,9 +35,9 @@ class GalleryCacheGenerator(CacheGenerator):
     FRAME_TIME: float = 1.0
 
     def generate_meta(self) -> None:
-        import orjson
-        with open(self.dest / "meta.json", "wb") as file:
-            file.write(orjson.dumps(self.meta))
+        import json
+        with open(self.dest / "meta.json", "w") as file:
+            file.write(json.dumps(self.meta))
 
     def generate_previews(self) -> None:
         for i, info in enumerate(self.meta['images']):

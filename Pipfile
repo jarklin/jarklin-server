@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 flask = "*"
-orjson = "*"
 pillow = "*"
 ffmpeg-python = "*"
 python-magic = "*"

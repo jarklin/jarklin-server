@@ -27,9 +27,9 @@ class VideoCacheGenerator(CacheGenerator):
     SCENE_FPS: int = 10
 
     def generate_meta(self) -> None:
-        import orjson
-        with open(self.dest / "meta.json", "wb") as file:
-            file.write(orjson.dumps(self.meta))
+        import json
+        with open(self.dest / "meta.json", "w") as file:
+            file.write(json.dumps(self.meta))
 
     def generate_previews(self) -> None:
         main_frames: t.List[int]

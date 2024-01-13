@@ -3,11 +3,11 @@ r"""
 
 """
 import os
+import json
 import shutil
 import typing as t
 from pathlib import Path
 from functools import cached_property
-import orjson
 from ..common.types import InfoEntry
 from ._cache_generator import CacheGenerator
 from .video import VideoCacheGenerator
@@ -76,7 +76,7 @@ class Cache:
                         path=str(source.relative_to(self.root)),
                         name=source.name,
                         ext=source.suffix,
-                        meta=generator.meta
+                        meta=generator.meta,
                     ))
                     if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
                         generator_jobs.append(generator)
@@ -94,7 +94,7 @@ class Cache:
                         path=str(source.relative_to(self.root)),
                         name=source.name,
                         ext=source.suffix,
-                        meta=generator.meta
+                        meta=generator.meta,
                     ))
                     if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
                         generator_jobs.append(generator)
@@ -104,5 +104,5 @@ class Cache:
                 break
             generator.generate()
 
-        with open(self.root.joinpath('.jarklin/info.json'), 'wb') as fp:
-            fp.write(orjson.dumps(info))
+        with open(self.root.joinpath('.jarklin/info.json'), 'w') as fp:
+            fp.write(json.dumps(info))
