@@ -151,14 +151,15 @@ class VideoCacheGenerator(CacheGenerator):
 
     @cached_property
     def meta(self) -> VideoMeta:
+        duration = float(self.ffprobe["format"]["duration"])
         return VideoMeta(
             type='video',
             filename=self.source.name,
-            duration=float(self.ffprobe['format']['duration']),
+            duration=duration,
             width=self.main_video_stream['width'],
             height=self.main_video_stream['height'],
             filesize=self.source.stat().st_size,
-            n_previews=len(self.chapters),
+            n_previews=len(self.chapters) or self.scenes_for_length(duration=duration),
             video_streams=[VideoStreamMeta(
                 is_default=bool(stream['disposition']['default']),
                 duration=float(stream['duration']),
