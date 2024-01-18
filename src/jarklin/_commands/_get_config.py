@@ -17,6 +17,6 @@ def get_config() -> 'configlib.ConfigInterface':
             ]
         )
     except configlib.ConfigNotFoundError:
-        raise FileNotFoundError("no jarklin config file found") from None
+        raise FileNotFoundError("no jarklin config file found in current directory") from None
     else:
         return configlib.load(fp=fp)
