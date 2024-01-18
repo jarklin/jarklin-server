@@ -28,11 +28,15 @@ class Cache:
 
     @cached_property
     def jarklin_path(self) -> Path:
-        return self.root.joinpath('.jarklin')
+        directory = self.root.joinpath('.jarklin')
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory
 
     @cached_property
     def jarklin_cache(self) -> Path:
-        return self.jarklin_path.joinpath('cache')
+        directory = self.jarklin_path.joinpath('cache')
+        directory.mkdir(parents=True, exist_ok=True)
+        return directory
 
     def run(self) -> None:
         self.invalidate()
