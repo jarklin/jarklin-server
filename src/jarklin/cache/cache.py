@@ -8,7 +8,9 @@ import shutil
 import typing as t
 from pathlib import Path
 from functools import cached_property
+from configlib import ConfigInterface
 from ..common.types import InfoEntry
+from ..common.dot_ignore import DotIgnore
 from ._cache_generator import CacheGenerator
 from .video import VideoCacheGenerator
 from .gallery import GalleryCacheGenerator
@@ -19,8 +21,16 @@ __all__ = ['Cache']
 
 
 class Cache:
-    def __init__(self) -> None:
+    def __init__(self, config: ConfigInterface) -> None:
         self._shutdown: bool = False
+        self._config = config
+
+    @cached_property
+    def ignorer(self) -> 'DotIgnore':
+        return DotIgnore.from_iterable(
+            *self._config.getsplit('cache', 'ignore', fallback=[]),
+            ".*",  # .jarklin/ | .jarklin.{ext}
+        )
 
     @cached_property
     def root(self) -> Path:
@@ -55,6 +65,9 @@ class Cache:
         for root, dirnames, files in os.walk(self.jarklin_cache):
             for dirname in dirnames:
                 dest = Path(root, dirname)
+                if self.ignorer.ignored(dest):
+                    dirnames.remove(dirname)
+                    continue
                 source = dest.relative_to(self.jarklin_cache)
                 if not dest.joinpath("meta.json").is_file():
                     continue
@@ -83,25 +96,27 @@ class Cache:
     def find_generators(self) -> t.List[CacheGenerator]:
         generators: t.List[CacheGenerator] = []
 
-        for root, dirnames, files in os.walk(self.root):
+        for root, dirnames, filenames in os.walk(self.root):
             # galleries
             for dirname in dirnames:
-                if dirname.startswith("."):  # filter eg .jarklin/ out
+                source = Path(root, dirname)
+                dest = self.jarklin_cache.joinpath(source.relative_to(self.root))
+
+                if self.ignorer.ignored(source):
                     dirnames.remove(dirname)
                     continue
 
-                source = Path(root, dirname)
-                dest = self.jarklin_cache.joinpath(source.relative_to(self.root))
                 if is_gallery(source):
                     generators.append(GalleryCacheGenerator(source=source, dest=dest))
             # videos
-            for filename in files:
-                if filename.startswith("."):  # filter eg .jarklin.conf out
-                    files.remove(filename)
-                    continue
-
+            for filename in filenames:
                 source = Path(root, filename)
                 dest = self.jarklin_cache.joinpath(source.relative_to(self.root))
+
+                if self.ignorer.ignored(source):
+                    filenames.remove(filename)
+                    continue
+
                 if is_video_file(source):
                     generators.append(VideoCacheGenerator(source=source, dest=dest))
 
