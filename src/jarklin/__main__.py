@@ -29,10 +29,6 @@ web_subparsers = web_parser.add_subparsers()
 
 web_run_parser = web_subparsers.add_parser('run')
 web_run_parser.set_defaults(fn=commands.web.run)
-web_run_parser.add_argument('--host', type=str)
-web_run_parser.add_argument('--port', type=int)
-web_run_parser.add_argument('--dev', '--development', action=ap.BooleanOptionalAction, dest="development",
-                            help="start in debug mode")
 
 # ==================================================================================================================== #
 

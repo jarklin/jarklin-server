@@ -8,6 +8,7 @@ flask = "*"
 pillow = "*"
 ffmpeg-python = "*"
 python-magic = "*"
+config-library = {extras = ["yaml"], version = "*"}
 
 [dev-packages]
 better-exceptions = "*"
