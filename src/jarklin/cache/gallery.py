@@ -31,8 +31,25 @@ from PIL import Image
 
 
 class GalleryCacheGenerator(CacheGenerator):
-    DIMS: t.Tuple[int, int] = (512, 512)
-    FRAME_TIME: float = 1.0
+    @cached_property
+    def max_dimensions(self) -> t.Tuple[int, int]:
+        width = self.config.getint('cache', 'gallery', 'dimensions', 'width', fallback=None)
+        height = self.config.getint('cache', 'gallery', 'dimensions', 'height', fallback=None)
+        if width is None:
+            width = height or 512
+        if height is None:
+            height = width
+        return width, height
+
+    @cached_property
+    def frame_time(self) -> float:
+        return self.config.getfloat('cache', 'gallery', 'animated', 'frame_time', fallback=1.0)
+
+    @cached_property
+    def max_images(self) -> int:
+        return self.config.getint('cache', 'gallery', 'animated', 'max_images', fallback=20)
+
+    # ---------------------------------------------------------------------------------------------------------------- #
 
     def generate_meta(self) -> None:
         import json
@@ -43,7 +60,7 @@ class GalleryCacheGenerator(CacheGenerator):
         for i, info in enumerate(self.meta['images']):
             with Image.open(self.source.joinpath(info['filename'])) as image:
                 image_rgb = image.convert('RGB')
-                image_rgb.thumbnail(self.DIMS)
+                image_rgb.thumbnail(self.max_dimensions)
                 image_rgb.save(self.previews_dir.joinpath(f"{i+1}.jpg"), format='JPEG',
                                progressive=True, optimize=True, quality=85)
 
@@ -53,14 +70,14 @@ class GalleryCacheGenerator(CacheGenerator):
             shutil.copyfile(first_preview, self.dest.joinpath("preview.jpg"))
 
     def generate_animated_preview(self) -> None:
-        images = sorted(self.previews_dir.glob("*.jpg"), key=lambda f: int(f.stem))[:20]  # max 20!?
+        images = sorted(self.previews_dir.glob("*.jpg"), key=lambda f: int(f.stem))[:self.max_images]
         first, *frames = map(Image.open, images)
         # saved as gif. better compatibility, but larger in size
         # first.save(self.dest.joinpath("preview.gif"), format="GIF", save_all=True, interlace=True,
         #            append_images=frames, duration=round(1000 / self.FRAMES_PER_SCENE), loop=0, optimize=True)
         # save as newer webp format. way smaller but not as well-supported
         first.save(self.dest.joinpath("preview.webp"), format="WEBP", save_all=True, minimize_size=False,
-                   append_images=frames, duration=round(self.FRAME_TIME * 1000), loop=0, method=6, quality=100)
+                   append_images=frames, duration=round(self.frame_time * 1000), loop=0, method=6, quality=100)
 
     def generate_type(self) -> None:
         self.dest.joinpath("gallery.type").touch()

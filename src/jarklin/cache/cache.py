@@ -107,7 +107,7 @@ class Cache:
                     continue
 
                 if is_gallery(source):
-                    generators.append(GalleryCacheGenerator(source=source, dest=dest))
+                    generators.append(GalleryCacheGenerator(source=source, dest=dest, config=self._config))
             # videos
             for filename in filenames:
                 source = Path(root, filename)
@@ -118,6 +118,6 @@ class Cache:
                     continue
 
                 if is_video_file(source):
-                    generators.append(VideoCacheGenerator(source=source, dest=dest))
+                    generators.append(VideoCacheGenerator(source=source, dest=dest, config=self._config))
 
         return generators

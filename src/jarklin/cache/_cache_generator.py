@@ -7,15 +7,17 @@ import typing as t
 from pathlib import Path
 from abc import abstractmethod
 from functools import cached_property
+from configlib import ConfigInterface
 from ..common.types import PathSource
 
 
 class CacheGenerator:
-    def __init__(self, source: PathSource, dest: PathSource):
+    def __init__(self, source: PathSource, dest: PathSource, config: ConfigInterface):
         self.source = Path(source)
         if not self.source.exists():
             raise FileNotFoundError(str(self.source))
         self.dest = Path(dest)
+        self.config = config
 
     @t.final
     def generate(self) -> None:

@@ -22,9 +22,29 @@ from ._cache_generator import CacheGenerator
 
 
 class VideoCacheGenerator(CacheGenerator):
-    DIMS: t.Tuple[int, int] = (512, 512)
-    SECONDS_PER_SCENE: int = 2
-    SCENE_FPS: int = 10
+    @cached_property
+    def max_dimensions(self) -> t.Tuple[int, int]:
+        width = self.config.getint('cache', 'video', 'dimensions', 'width', fallback=None)
+        height = self.config.getint('cache', 'video', 'dimensions', 'height', fallback=None)
+        if width is None:
+            width = height or 512
+        if height is None:
+            height = width
+        return width, height
+
+    @cached_property
+    def seconds_per_scene(self) -> float:
+        return self.config.getfloat('cache', 'video', 'animated', 'scene_length', fallback=1.5)
+
+    @cached_property
+    def scene_fps(self) -> int:
+        return self.config.getint('cache', 'video', 'animated', 'fps', fallback=8)
+
+    @cached_property
+    def scene_offset(self) -> float:
+        return self.config.getfloat('cache', 'video', 'animated', 'scene_offset', fallback=5)
+
+    # ---------------------------------------------------------------------------------------------------------------- #
 
     def generate_meta(self) -> None:
         import json
@@ -36,7 +56,7 @@ class VideoCacheGenerator(CacheGenerator):
         if self.chapters:
             main_frames = [
                 # start-frame of the chapters + 5s
-                round(float(chapter['start_time']) * self.stat_fps + (self.stat_fps * 5))
+                round(float(chapter['start_time']) * self.stat_fps + (self.stat_fps * self.scene_offset))
                 for chapter in self.chapters
             ]
         else:
@@ -48,15 +68,15 @@ class VideoCacheGenerator(CacheGenerator):
                 round(every_n_seconds * self.stat_fps),  # every x frame
             ))
 
-        scene_offsets = [round((self.stat_fps / self.SCENE_FPS) * i)
-                         for i in range(self.SECONDS_PER_SCENE * self.SCENE_FPS)]
+        scene_offsets = [round((self.stat_fps / self.scene_fps) * i)
+                         for i in range(round(self.seconds_per_scene * self.scene_fps))]
 
         extract_frames = [round(main + offset)
                           for main in main_frames
                           for offset in scene_offsets]
 
         vw, vh = self.stat_width, self.stat_height
-        scale = (min(self.DIMS[0], vw), -1) if (vw > vh) else (-1, min(self.DIMS[1], vh))
+        scale = (min(self.max_dimensions[0], vw), -1) if (vw > vh) else (-1, min(self.max_dimensions[1], vh))
 
         (
             ffmpeg
@@ -69,7 +89,7 @@ class VideoCacheGenerator(CacheGenerator):
 
         for i in range(len(main_frames)):
             shutil.copyfile(
-                self.previews_cache.joinpath(f"{i*(self.SECONDS_PER_SCENE*self.SCENE_FPS)+1}.jpg"),
+                self.previews_cache.joinpath(f"{round(i * self.seconds_per_scene * self.scene_fps)+1}.jpg"),
                 self.previews_dir.joinpath(f"{i+1}.jpg")
             )
 
@@ -87,7 +107,7 @@ class VideoCacheGenerator(CacheGenerator):
         #            append_images=frames, duration=round(1000 / self.FRAMES_PER_SCENE), loop=0, optimize=True)
         # save as newer webp format. way smaller but not as well-supported
         first.save(self.dest.joinpath("preview.webp"), format="WEBP", save_all=True, minimize_size=False,
-                   append_images=frames, duration=round(1000 / self.SCENE_FPS), loop=0, method=6)  # , quality=100
+                   append_images=frames, duration=round(1000 / self.scene_fps), loop=0, method=6)  # , quality=100
 
     def generate_type(self):
         self.dest.joinpath("video.type").touch()
