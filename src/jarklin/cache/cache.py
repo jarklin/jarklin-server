@@ -85,7 +85,7 @@ class Cache:
                 generator.generate()
             info.append(InfoEntry(
                 path=str(source.relative_to(self.root)),
-                name=source.name,
+                name=source.stem,
                 ext=source.suffix,
                 meta=json.loads(dest.joinpath("meta.json").read_bytes()),
             ))
