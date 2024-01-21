@@ -18,10 +18,12 @@ def run() -> None:
     app.config['username'] = config.getstr('web', 'auth', 'username', fallback=None)
     app.config['password'] = config.getstr('web', 'auth', 'password', fallback=None)
 
-    app.wsgi_app = DispatcherMiddleware(
-        Response('Not Found', status=404),
-        {config.getstr('web', 'baseurl', fallback="/"): app.wsgi_app},
-    )
+    baseurl = config.getstr('web', 'baseurl', fallback=None)
+    if baseurl and baseurl != '/':
+        app.wsgi_app = DispatcherMiddleware(
+            Response('Not Found', status=404),
+            {baseurl: app.wsgi_app},
+        )
 
     config = get_config()
 
