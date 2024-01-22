@@ -19,7 +19,7 @@ def is_authenticated(fn):
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        if (app.config.get("username") is not None and app.config.get("password") is not None
+        if (app.config.get("USERNAME") is not None and app.config.get("PASSWORD") is not None
                 and 'username' not in flask.session):
             raise Forbidden("currently not logged in")
         return fn(*args, **kwargs)
@@ -35,7 +35,7 @@ def files(resource: str, download: bool = False):
 
 @app.post("/login")
 def login():
-    config_username, config_password = app.config.get("username"), app.config.get("password")
+    config_username, config_password = app.config.get("USERNAME"), app.config.get("PASSWORD")
     if config_username is None or config_password is None:
         return "", HTTPStatus.NO_CONTENT
 
