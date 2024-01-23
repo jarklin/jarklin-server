@@ -14,7 +14,7 @@ from ..common.dot_ignore import DotIgnore
 from ._cache_generator import CacheGenerator
 from .video import VideoCacheGenerator
 from .gallery import GalleryCacheGenerator
-from .util import is_video_file, is_gallery, is_deprecated, is_incomplete
+from .util import is_video_file, is_gallery, is_deprecated, is_incomplete, get_mtime
 
 
 __all__ = ['Cache']
@@ -87,6 +87,7 @@ class Cache:
                 path=str(source.relative_to(self.root)),
                 name=source.stem,
                 ext=source.suffix,
+                mtime=get_mtime(source),
                 meta=json.loads(dest.joinpath("meta.json").read_bytes()),
             ))
 

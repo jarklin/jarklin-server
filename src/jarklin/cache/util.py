@@ -44,3 +44,13 @@ def is_deprecated(source: PathSource, dest: PathSource) -> bool:
 def is_incomplete(dest: PathSource) -> bool:
     dest = Path(dest)
     return next(dest.glob("*.type"), None) is None
+
+
+def get_mtime(path: PathSource) -> float:
+    path = Path(path)
+    if path.is_file():
+        return path.stat().st_mtime
+    elif path.is_dir():
+        return max(p.stat().st_mtime for p in path.iterdir() if p.is_file())
+    else:
+        raise ValueError(f"can't get mtime for {str(path)!r}")
