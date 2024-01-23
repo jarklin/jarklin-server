@@ -33,7 +33,15 @@ def files(resource: str, download: bool = False):
     return flask.send_from_directory(os.getcwd(), resource, as_attachment=download)
 
 
-@app.post("/login")
+@app.get("/auth/username")
+def get_username():
+    try:
+        return flask.session["username"], HTTPStatus.OK
+    except KeyError:
+        return "", HTTPStatus.NO_CONTENT
+
+
+@app.post("/auth/login")
 def login():
     config_username, config_password = app.config.get("USERNAME"), app.config.get("PASSWORD")
     if config_username is None or config_password is None:
@@ -48,7 +56,7 @@ def login():
     return "", HTTPStatus.NO_CONTENT
 
 
-@app.post("/logout")
+@app.post("/auth/logout")
 def logout():
     if 'username' in flask.session:
         flask.session.pop('username')
