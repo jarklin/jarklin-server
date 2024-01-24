@@ -7,7 +7,7 @@ import os.path as p
 from http import HTTPStatus
 from hmac import compare_digest
 import flask
-from werkzeug.exceptions import Forbidden, BadRequest
+from werkzeug.exceptions import Unauthorized, BadRequest
 
 
 WEB_UI = p.join(p.dirname(__file__), 'web-ui')
@@ -21,7 +21,7 @@ def is_authenticated(fn):
     def wrapper(*args, **kwargs):
         if (app.config.get("USERNAME") is not None and app.config.get("PASSWORD") is not None
                 and 'username' not in flask.session):
-            raise Forbidden("currently not logged in")
+            raise Unauthorized("currently not logged in")
         return fn(*args, **kwargs)
 
     return wrapper
@@ -51,7 +51,7 @@ def login():
     if not username or not password:
         raise BadRequest("username or password missing in authorization")
     if not (compare_digest(username, config_username) and compare_digest(password, config_password)):
-        raise Forbidden("bad credentials provided")
+        raise Unauthorized("bad credentials provided")
     flask.session['username'] = username
     return "", HTTPStatus.NO_CONTENT
 
