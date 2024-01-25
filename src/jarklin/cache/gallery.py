@@ -23,6 +23,7 @@ import re
 import shutil
 import typing as t
 from pathlib import Path
+from contextlib import ExitStack
 from functools import cached_property
 from ..common.types import GalleryMeta, GalleryImageMeta, PathSource
 from ._cache_generator import CacheGenerator
@@ -71,13 +72,12 @@ class GalleryCacheGenerator(CacheGenerator):
 
     def generate_animated_preview(self) -> None:
         images = sorted(self.previews_dir.glob("*.jpg"), key=lambda f: int(f.stem))[:self.max_images]
-        first, *frames = map(Image.open, images)
-        # saved as gif. better compatibility, but larger in size
-        # first.save(self.dest.joinpath("preview.gif"), format="GIF", save_all=True, interlace=True,
-        #            append_images=frames, duration=round(1000 / self.FRAMES_PER_SCENE), loop=0, optimize=True)
-        # save as newer webp format. way smaller but not as well-supported
-        first.save(self.dest.joinpath("preview.webp"), format="WEBP", save_all=True, minimize_size=False,
-                   append_images=frames, duration=round(self.frame_time * 1000), loop=0, method=6, quality=100)
+        with ExitStack() as stack:
+            first, *frames = (stack.enter_context(Image.open(fp)) for fp in images)
+            # minimize_size=True => warned as slow
+            # method=6 => bit slower but better results
+            first.save(self.dest.joinpath("preview.webp"), format="WEBP", save_all=True, minimize_size=False,
+                       append_images=frames, duration=round(self.frame_time * 1000), loop=0, method=6, quality=100)
 
     def generate_type(self) -> None:
         self.dest.joinpath("gallery.type").touch()
