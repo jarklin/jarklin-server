@@ -27,9 +27,10 @@ class Cache:
 
     @cached_property
     def ignorer(self) -> 'DotIgnore':
-        return DotIgnore.from_iterable(
+        return DotIgnore(
             *self._config.getsplit('cache', 'ignore', fallback=[]),
             ".*",  # .jarklin/ | .jarklin.{ext}
+            root=self.root,
         )
 
     @cached_property
@@ -49,7 +50,7 @@ class Cache:
         return directory
 
     def run(self) -> None:
-        self.invalidate()
+        self.iteration()
 
     def shutdown(self) -> None:
         self._shutdown = True
@@ -65,9 +66,6 @@ class Cache:
         for root, dirnames, files in os.walk(self.jarklin_cache):
             for dirname in dirnames:
                 dest = Path(root, dirname)
-                if self.ignorer.ignored(dest):
-                    dirnames.remove(dirname)
-                    continue
                 source = dest.relative_to(self.jarklin_cache)
                 if not dest.joinpath("meta.json").is_file():
                     continue
