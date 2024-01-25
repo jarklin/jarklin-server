@@ -34,6 +34,7 @@ def is_gallery(fp: PathSource, boundary: int = 5) -> bool:
 
 
 def is_deprecated(source: PathSource, dest: PathSource) -> bool:
+    # todo: what if gallery got image added
     source = Path(source)
     dest = Path(dest)
     if not dest.exists():
@@ -44,6 +45,16 @@ def is_deprecated(source: PathSource, dest: PathSource) -> bool:
 def is_incomplete(dest: PathSource) -> bool:
     dest = Path(dest)
     return next(dest.glob("*.type"), None) is None
+
+
+def get_ctime(path: PathSource) -> float:
+    path = Path(path)
+    if path.is_file():
+        return path.stat().st_ctime
+    elif path.is_dir():
+        return min(p.stat().st_ctime for p in path.iterdir() if p.is_file())
+    else:
+        raise ValueError(f"can't get ctime for {str(path)!r}")
 
 
 def get_mtime(path: PathSource) -> float:
