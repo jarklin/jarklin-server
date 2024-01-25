@@ -34,12 +34,17 @@ def is_gallery(fp: PathSource, boundary: int = 5) -> bool:
 
 
 def is_deprecated(source: PathSource, dest: PathSource) -> bool:
-    # todo: what if gallery got image added
     source = Path(source)
     dest = Path(dest)
+    if not source.exists():
+        raise FileNotFoundError(source)
     if not dest.exists():
         return True
-    return source.stat().st_mtime > dest.stat().st_mtime
+    if source.is_dir():  # gallery
+        source_mtime = max(fp.stat().st_mtime for fp in source.iterdir() if fp.is_file())
+    else:
+        source_mtime = source.stat().st_mtime
+    return source_mtime > dest.stat().st_mtime
 
 
 def is_incomplete(dest: PathSource) -> bool:
