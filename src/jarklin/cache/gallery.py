@@ -74,6 +74,8 @@ class GalleryCacheGenerator(CacheGenerator):
         images = sorted(self.previews_dir.glob("*.jpg"), key=lambda f: int(f.stem))[:self.max_images]
         with ExitStack() as stack:
             first, *frames = (stack.enter_context(Image.open(fp)) for fp in images)
+            # this step is done to ensure all images have the same dimensions. otherwise the save will fail
+            frames = [stack.enter_context(frame.resize(first.size)) for frame in frames]
             # minimize_size=True => warned as slow
             # method=6 => bit slower but better results
             first.save(self.dest.joinpath("preview.webp"), format="WEBP", save_all=True, minimize_size=False,
