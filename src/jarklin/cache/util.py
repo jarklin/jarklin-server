@@ -3,8 +3,15 @@ r"""
 
 """
 import re
+import logging
+import mimetypes
 from pathlib import Path
 from ..common.types import PathSource
+try:
+    import magic
+except ImportError:  # not found or system has not libmagic.c stuff
+    logging.exception("magic")
+    magic = None
 
 
 any_number = re.compile(r"\d")
@@ -12,14 +19,11 @@ any_number = re.compile(r"\d")
 
 def get_mimetype(fp: PathSource) -> str:
     fp = Path(fp)
-    try:
-        import magic
-        return magic.from_file(fp, mime=True)
-    except (ModuleNotFoundError, FileNotFoundError):
-        pass
-    except IsADirectoryError:
-        return "unknown/unknown"
-    import mimetypes
+    if magic:
+        try:
+            return magic.from_file(fp, mime=True)
+        except (IsADirectoryError, FileNotFoundError):
+            pass
     mime, _ = mimetypes.guess_type(fp)
     return mime or "unknown/unknown"
 

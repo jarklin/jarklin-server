@@ -2,6 +2,7 @@
 r"""
 
 """
+import logging
 import shutil
 import typing as t
 from pathlib import Path
@@ -24,16 +25,23 @@ class CacheGenerator:
 
     @t.final
     def generate(self) -> None:
+        logging.info(f"{self}.generate()")
         if self.dest.is_dir():
             shutil.rmtree(self.dest, ignore_errors=True)
         self.dest.mkdir(parents=True)
 
         try:
+            logging.info(f"{self}.generate_meta()")
             self.generate_meta()
+            logging.info(f"{self}.generate_previews()")
             self.generate_previews()
+            logging.info(f"{self}.generate_image_preview()")
             self.generate_image_preview()
+            logging.info(f"{self}.generate_animated_preview()")
             self.generate_animated_preview()
+            logging.info(f"{self}.generate_type()")
             self.generate_type()
+            logging.info(f"{self}.cleanup()")
             self.cleanup()
         except KeyboardInterrupt:
             shutil.rmtree(self.dest, ignore_errors=True)

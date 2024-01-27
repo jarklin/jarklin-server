@@ -9,6 +9,7 @@ video.mp4/
 ├─ meta.json
 ├─ video.type
 """
+import logging
 import shutil
 import typing as t
 from pathlib import Path
@@ -55,12 +56,14 @@ class VideoCacheGenerator(CacheGenerator):
     def generate_previews(self) -> None:
         main_frames: t.List[int]
         if self.chapters:
+            logging.debug(f"{self}: chapters found")
             main_frames = [
                 # start-frame of the chapters + 5s
                 round(float(chapter['start_time']) * self.stat_fps + (self.stat_fps * self.scene_offset))
                 for chapter in self.chapters
             ]
         else:
+            logging.debug(f"{self}: no chapters. fallback to evenly spread scenes")
             number_of_scenes = self.scenes_for_length(duration=self.stat_duration)
             every_n_seconds = self.stat_duration / number_of_scenes
             main_frames = list(range(
@@ -79,6 +82,7 @@ class VideoCacheGenerator(CacheGenerator):
         vw, vh = self.stat_width, self.stat_height
         scale = (min(self.max_dimensions[0], vw), -1) if (vw > vh) else (-1, min(self.max_dimensions[1], vh))
 
+        logging.debug(f"{self}: running ffmpeg to extract images")
         (
             ffmpeg
             .input(str(self.source))
@@ -88,6 +92,7 @@ class VideoCacheGenerator(CacheGenerator):
             .run(quiet=True, overwrite_output=True)
         )
 
+        logging.debug(f"{self}: copying frames to previews/")
         for i in range(len(main_frames)):
             shutil.copyfile(
                 self.previews_cache.joinpath(f"{round(i * self.seconds_per_scene * self.scene_fps)+1}.jpg"),

@@ -72,7 +72,7 @@ class GalleryCacheGenerator(CacheGenerator):
     def generate_animated_preview(self) -> None:
         images = sorted(self.previews_dir.glob("*.jpg"), key=lambda f: int(f.stem))[:self.max_images]
         if not images:
-            raise FileExistsError("not previews found")
+            raise FileExistsError("no previews found")
         with ExitStack() as stack:
             first, *frames = (stack.enter_context(Image.open(fp)) for fp in images)
             # this step is done to ensure all images have the same dimensions. otherwise the save will fail
@@ -121,4 +121,6 @@ class GalleryCacheGenerator(CacheGenerator):
             if match is None:
                 continue
             possible_files.append((fp, int(match.group('id'))))
+        if not possible_files:
+            raise FileNotFoundError('No image files found')
         return [fp for fp, _ in sorted(possible_files, key=lambda p: p[1])]

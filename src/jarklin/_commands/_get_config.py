@@ -4,6 +4,7 @@ r"""
 """
 from functools import cache
 import configlib.finder
+from ._logging import configure_logging
 
 
 @cache
@@ -19,4 +20,6 @@ def get_config() -> 'configlib.ConfigInterface':
     except configlib.ConfigNotFoundError:
         raise FileNotFoundError("no jarklin config file found in current directory") from None
     else:
-        return configlib.load(fp=fp)
+        config = configlib.load(fp=fp)
+        configure_logging(config=config)
+        return config

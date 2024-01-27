@@ -5,6 +5,7 @@ r"""
 import os
 import json
 import shutil
+import logging
 import typing as t
 from pathlib import Path
 from functools import cached_property
@@ -63,6 +64,7 @@ class Cache:
         self.generate()
 
     def invalidate(self) -> None:
+        logging.info("cache.invalidate()")
         for root, dirnames, files in os.walk(self.jarklin_cache):
             for dirname in dirnames:
                 dest = Path(root, dirname)
@@ -73,6 +75,7 @@ class Cache:
                     shutil.rmtree(dest)
 
     def generate(self) -> None:
+        logging.info("cache.generate()")
         info: t.List[InfoEntry] = []
         generators: t.List[CacheGenerator] = self.find_generators()
 
@@ -80,6 +83,7 @@ class Cache:
             source = generator.source
             dest = generator.dest
             if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
+                logging.info(f"generating {generator}")
                 generator.generate()
             info.append(InfoEntry(
                 path=str(source.relative_to(self.root)),
@@ -90,6 +94,7 @@ class Cache:
                 meta=json.loads(dest.joinpath("meta.json").read_bytes()),
             ))
 
+        logging.info("generating info.json")
         with open(self.root.joinpath('.jarklin/info.json'), 'w') as fp:
             fp.write(json.dumps(info))
 
