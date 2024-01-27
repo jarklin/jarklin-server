@@ -98,7 +98,7 @@ class Cache:
 
         for root, dirnames, filenames in os.walk(self.root):
             # galleries
-            for dirname in dirnames:
+            for dirname in dirnames[:]:
                 source = Path(root, dirname)
                 dest = self.jarklin_cache.joinpath(source.relative_to(self.root))
 
@@ -109,7 +109,7 @@ class Cache:
                 if is_gallery(source):
                     generators.append(GalleryCacheGenerator(source=source, dest=dest, config=self._config))
             # videos
-            for filename in filenames:
+            for filename in filenames[:]:
                 source = Path(root, filename)
                 dest = self.jarklin_cache.joinpath(source.relative_to(self.root))
 
