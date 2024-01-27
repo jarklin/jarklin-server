@@ -15,6 +15,7 @@ class FFProbeVideoStream(t.TypedDict):
     codec_type: t.Literal['video']
     width: int
     height: int
+    r_frame_rate: str  # eg"25/1"
     avg_frame_rate: str  # eg"25/1"
     duration: str  # str(float)
     nb_frames: str  # str(int)

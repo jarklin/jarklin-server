@@ -220,11 +220,16 @@ class VideoCacheGenerator(CacheGenerator):
 
     @cached_property
     def stat_n_frames(self) -> int:
-        return int(self.main_video_stream['nb_frames'])
-        # return round(self.stat_duration * self.stat_fps)
+        try:
+            return int(self.main_video_stream['nb_frames'])
+        except KeyError:
+            return round(self.stat_duration * self.stat_fps)
 
     @cached_property
     def stat_fps(self) -> float:
-        avg_frame_rate: str = self.main_video_stream['avg_frame_rate']  # '25/1'
-        numerator, denominator = avg_frame_rate.split('/')  # ('25', '1')
+        try:
+            frame_rate: str = self.main_video_stream['avg_frame_rate']  # '25/1'
+        except KeyError:
+            frame_rate: str = self.main_video_stream['r_frame_rate']  # '25/1'
+        numerator, denominator = frame_rate.split('/')  # ('25', '1')
         return int(numerator) / int(denominator)  # 25 / 1
