@@ -19,6 +19,9 @@ class CacheGenerator:
         self.dest = Path(dest)
         self.config = config
 
+    def __repr__(self):
+        return f"<{type(self).__name__}: {self.source!s}>"
+
     @t.final
     def generate(self) -> None:
         if self.dest.is_dir():
