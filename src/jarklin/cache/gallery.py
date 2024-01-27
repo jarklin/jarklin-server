@@ -67,11 +67,12 @@ class GalleryCacheGenerator(CacheGenerator):
 
     def generate_image_preview(self) -> None:
         first_preview = self.previews_dir.joinpath("1.jpg")
-        if first_preview.is_file():
-            shutil.copyfile(first_preview, self.dest.joinpath("preview.jpg"))
+        shutil.copyfile(first_preview, self.dest.joinpath("preview.jpg"))
 
     def generate_animated_preview(self) -> None:
         images = sorted(self.previews_dir.glob("*.jpg"), key=lambda f: int(f.stem))[:self.max_images]
+        if not images:
+            raise FileExistsError("not previews found")
         with ExitStack() as stack:
             first, *frames = (stack.enter_context(Image.open(fp)) for fp in images)
             # this step is done to ensure all images have the same dimensions. otherwise the save will fail
@@ -108,12 +109,15 @@ class GalleryCacheGenerator(CacheGenerator):
     @staticmethod
     def get_relevant_files_for_source(source: PathSource) -> t.List[PathSource]:
         all_files = [fp for fp in source.iterdir() if fp.is_file()]
-        pattern = re.compile(r'(?P<id>\d+)$')
+        pattern = re.compile(r'(?P<id>\d+)$')  # prefer last digits
+        fallback_pattern = re.compile(r'(?P<id>\d+)')  # but accept any if possible
         possible_files: t.List[t.Tuple[Path, int]] = []
         for fp in all_files:
             if not is_image_file(fp):
                 continue
             match = pattern.search(fp.stem)
+            if match is None:
+                match = fallback_pattern.search(fp.stem)
             if match is None:
                 continue
             possible_files.append((fp, int(match.group('id'))))

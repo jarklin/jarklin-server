@@ -2,8 +2,12 @@
 r"""
 
 """
+import re
 from pathlib import Path
 from ..common.types import PathSource
+
+
+any_number = re.compile(r"\d")
 
 
 def get_mimetype(fp: PathSource) -> str:
@@ -30,7 +34,10 @@ def is_video_file(fp: PathSource) -> bool:
 
 def is_gallery(fp: PathSource, boundary: int = 5) -> bool:
     fp = Path(fp)
-    return fp.is_dir() and len([f for f in fp.iterdir() if is_image_file(f)]) > boundary
+    return fp.is_dir() and len([
+        f for f in fp.iterdir()
+        if any_number.search(fp.stem) is not None and is_image_file(f)
+    ]) > boundary
 
 
 def is_deprecated(source: PathSource, dest: PathSource) -> bool:
