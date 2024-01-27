@@ -44,6 +44,9 @@ def run() -> None:
         from flask_compress import Compress  # no need to load unless required
         Compress(app)
 
+    # pip install flask-kaccel for nginx
+    # app.config['USE_X_SENDFILE'] = config.getboolean('web', 'x_sendfile', fallback=False)
+
     app.run(
         host=config.getstr('web', 'host', fallback=None),
         port=config.getint('web', 'port', fallback=None),
