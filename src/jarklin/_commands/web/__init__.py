@@ -40,6 +40,10 @@ def run() -> None:
     app.config['SESSION_REFRESH_EACH_REQUEST'] = \
         config.getboolean('web', 'session', 'refresh_each_request', fallback=False)
 
+    if config.getbool('web', 'gzip', fallback=True):
+        from flask_compress import Compress  # no need to load unless required
+        Compress(app)
+
     app.run(
         host=config.getstr('web', 'host', fallback=None),
         port=config.getint('web', 'port', fallback=None),

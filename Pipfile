@@ -9,6 +9,7 @@ pillow = "*"
 ffmpeg-python = "*"
 python-magic = "*"
 config-library = {extras = ["yaml"], version = "*"}
+flask-compress = "*"
 
 [dev-packages]
 better-exceptions = "*"
