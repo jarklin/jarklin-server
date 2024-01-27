@@ -7,8 +7,9 @@ r"""
 def run() -> None:
     import flask
     import secrets
-    from werkzeug.middleware.dispatcher import DispatcherMiddleware
     from werkzeug.wrappers import Response
+    from werkzeug.middleware.dispatcher import DispatcherMiddleware
+    from werkzeug.middleware.proxy_fix import ProxyFix
     from .._get_config import get_config
     from ...web import app
 
@@ -46,6 +47,16 @@ def run() -> None:
 
     # pip install flask-kaccel for nginx
     # app.config['USE_X_SENDFILE'] = config.getboolean('web', 'x_sendfile', fallback=False)
+
+    if config.getbool('web', 'proxy_fix', fallback=None) is not None:
+        app.wsgi_app = ProxyFix(
+            app=app,
+            x_for=config.getint('web', 'proxy_fix', 'x_forwarded_for', fallback=1),
+            x_proto=config.getint('web', 'proxy_fix', 'x_forwarded_proto', fallback=1),
+            x_host=config.getint('web', 'proxy_fix', 'x_forwarded_host', fallback=0),
+            x_port=config.getint('web', 'proxy_fix', 'x_forwarded_port', fallback=0),
+            x_prefix=config.getint('web', 'proxy_fix', 'x_forwarded_prefix', fallback=0),
+        )
 
     app.run(
         host=config.getstr('web', 'host', fallback=None),
