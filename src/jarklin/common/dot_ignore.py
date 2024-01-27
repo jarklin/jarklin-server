@@ -33,7 +33,7 @@ class DotIgnore:
             if rule.endswith("/"):  # currently directory-detection not supported
                 rule = rule[:-1]
 
-            self._rules.append((negated, re.compile(fnmatch.translate(rule))))
+            self._rules.append((negated, re.compile(fnmatch.translate(rule).replace(".*", "[^/]*"))))
 
     def ignored(self, path: PathResource) -> bool:
         path = p.abspath(path)
