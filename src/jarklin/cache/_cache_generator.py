@@ -4,10 +4,10 @@ r"""
 """
 import logging
 import shutil
+import functools
 import typing as t
 from pathlib import Path
 from abc import abstractmethod
-from functools import cached_property
 from configlib import ConfigInterface
 from ..common.types import PathSource
 
@@ -20,8 +20,9 @@ class CacheGenerator:
         self.dest = Path(dest)
         self.config = config
 
+    @functools.cache
     def __repr__(self):
-        return f"<{type(self).__name__}: {self.source!s}>"
+        return f"<{type(self).__name__}: {self.source.relative_to(Path.cwd())!s}>"
 
     @t.final
     def generate(self) -> None:
@@ -65,7 +66,7 @@ class CacheGenerator:
     def cleanup(self) -> None:
         pass
 
-    @cached_property
+    @functools.cached_property
     def previews_dir(self) -> Path:
         path = self.dest.joinpath("previews")
         path.mkdir(parents=True, exist_ok=True)

@@ -45,5 +45,5 @@ class DotIgnore:
                     is_ignored = False
                 else:
                     is_ignored = True
-        logging.debug(f"{path!s} is {'' if is_ignored else 'not '}ignored")
+        # logging.debug(f"{path!s} is {'' if is_ignored else 'not '}ignored")
         return is_ignored
