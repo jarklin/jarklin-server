@@ -126,11 +126,11 @@
                 "yaml"
             ],
             "hashes": [
-                "sha256:603bef1b259679a18c49ad2e69768971e94885fc615db0585406e8eb302b1a82",
-                "sha256:de327e6beacb641a082b32bf8b1c9b7e81348aada4c0e9fbd72ae653ccbd06f7"
+                "sha256:6cc26220ecc6ac26f068f77e718f13b9b9f332c805abfc8879e50a3858490a1e",
+                "sha256:927e0e9817ea7587dd04baebcb5a80f2d2a495827b6b886f47167a0c4d4f92fb"
             ],
             "index": "pypi",
-            "version": "==0.10.0"
+            "version": "==0.11.0"
         },
         "ffmpeg-python": {
             "hashes": [
