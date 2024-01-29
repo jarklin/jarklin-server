@@ -7,7 +7,6 @@ r"""
 def run() -> None:
     import flask
     import secrets
-    from werkzeug.wrappers import Response
     from werkzeug.middleware.dispatcher import DispatcherMiddleware
     from werkzeug.middleware.proxy_fix import ProxyFix
     from .._get_config import get_config
@@ -19,6 +18,7 @@ def run() -> None:
     if not baseurl.startswith("/"):
         raise ValueError("web.baseurl must start with /")
     if baseurl != "/":
+        from werkzeug.wrappers import Response
         app.wsgi_app = DispatcherMiddleware(
             Response('Not Found', status=404),
             {baseurl: app.wsgi_app},
@@ -59,8 +59,17 @@ def run() -> None:
             x_prefix=proxy_fix.getint('x_forwarded_prefix', fallback=0),
         )
 
-    app.run(
-        host=config.getstr('web', 'host', fallback=None),
-        port=config.getint('web', 'port', fallback=None),
-        debug=config.getboolean('web', 'debug', fallback=False),
-    )
+    if config.getboolean('web', 'debug', fallback=False):
+        app.run(
+            debug=True,
+            # host=config.getstr('web', 'host', fallback=None),
+            # port=config.getint('web', 'port', fallback=None),
+            **config.get('web', 'server', fallback={})
+        )
+    else:
+        import waitress
+        waitress.serve(
+            app=app,
+            ident="jarklin",
+            **config.get('web', 'server', fallback={})
+        )

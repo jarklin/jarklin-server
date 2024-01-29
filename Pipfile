@@ -10,6 +10,7 @@ ffmpeg-python = "*"
 python-magic = "*"
 config-library = {extras = ["yaml"], version = "*"}
 flask-compress = "*"
+waitress = "*"
 
 [dev-packages]
 better-exceptions = "*"
