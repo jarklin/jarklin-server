@@ -79,12 +79,18 @@ class Cache:
         info: t.List[InfoEntry] = []
         generators: t.List[CacheGenerator] = self.find_generators()
 
+        def generate_info():
+            logging.info("generating info.json")
+            with open(self.root.joinpath('.jarklin/info.json'), 'w') as fp:
+                fp.write(json.dumps(info))
+
         for generator in generators:
             source = generator.source
             dest = generator.dest
             if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
                 logging.info(f"generating {generator}")
                 generator.generate()
+                generate_info()
             info.append(InfoEntry(
                 path=str(source.relative_to(self.root)),
                 name=source.stem,
@@ -94,9 +100,7 @@ class Cache:
                 meta=json.loads(dest.joinpath("meta.json").read_bytes()),
             ))
 
-        logging.info("generating info.json")
-        with open(self.root.joinpath('.jarklin/info.json'), 'w') as fp:
-            fp.write(json.dumps(info))
+        generate_info()
 
     def find_generators(self) -> t.List[CacheGenerator]:
         generators: t.List[CacheGenerator] = []
