@@ -48,14 +48,15 @@ def run() -> None:
     # pip install flask-kaccel for nginx
     # app.config['USE_X_SENDFILE'] = config.getboolean('web', 'x_sendfile', fallback=False)
 
-    if config.getboolean('web', 'proxy_fix', fallback=None) is not None:
+    if config.has('web', 'proxy_fix'):
+        proxy_fix = config.getinterface('web', 'proxy_fix')
         app.wsgi_app = ProxyFix(
             app=app,
-            x_for=config.getint('web', 'proxy_fix', 'x_forwarded_for', fallback=1),
-            x_proto=config.getint('web', 'proxy_fix', 'x_forwarded_proto', fallback=1),
-            x_host=config.getint('web', 'proxy_fix', 'x_forwarded_host', fallback=0),
-            x_port=config.getint('web', 'proxy_fix', 'x_forwarded_port', fallback=0),
-            x_prefix=config.getint('web', 'proxy_fix', 'x_forwarded_prefix', fallback=0),
+            x_for=proxy_fix.getint('x_forwarded_for', fallback=1),
+            x_proto=proxy_fix.getint('x_forwarded_proto', fallback=1),
+            x_host=proxy_fix.getint('x_forwarded_host', fallback=0),
+            x_port=proxy_fix.getint('x_forwarded_port', fallback=0),
+            x_prefix=proxy_fix.getint('x_forwarded_prefix', fallback=0),
         )
 
     app.run(
