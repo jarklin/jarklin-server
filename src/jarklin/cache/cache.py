@@ -89,7 +89,11 @@ class Cache:
             dest = generator.dest
             if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
                 logging.info(f"generating {generator}")
-                generator.generate()
+                try:
+                    generator.generate()
+                except Exception as error:
+                    logging.error(f"generation failed ({generator})", exc_info=error)
+                    continue
                 generate_info()
             info.append(InfoEntry(
                 path=str(source.relative_to(self.root)),
