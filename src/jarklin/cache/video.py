@@ -100,10 +100,11 @@ class VideoCacheGenerator(CacheGenerator):
             )
 
     def generate_image_preview(self) -> None:
-        import shutil
-        first_preview = self.previews_dir.joinpath("1.jpg")
-        if first_preview.is_file():
-            shutil.copyfile(first_preview, self.dest.joinpath("preview.jpg"))
+        # prefer the second as the first could be producer-logo
+        preview_source = self.previews_dir.joinpath("2.jpg")
+        if not preview_source.is_file():
+            preview_source = self.previews_dir.joinpath("1.jpg")
+        shutil.copyfile(preview_source, self.dest.joinpath("preview.jpg"))
 
     def generate_animated_preview(self) -> None:
         images = sorted(self.previews_cache.glob("*.jpg"), key=lambda f: int(f.stem))
