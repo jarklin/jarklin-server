@@ -133,4 +133,4 @@ class Cache:
                 if is_video_file(source):
                     generators.append(VideoCacheGenerator(source=source, dest=dest, config=self._config))
 
-        return generators
+        return sorted(generators, key=lambda g: str(g.source).lower())
