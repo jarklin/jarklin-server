@@ -62,9 +62,9 @@ function print_help() {
 
 case "$1" in
 "reinstall-dependencies" | "reinstall-deps")
-  shell_func "${@:2}"
+  reinstall_dependencies "${@:2}"
 ;;
-"help" | "--help" | "-h")
+"help" | "--help" | "-h" | "")
   print_help "${@:2}"
 ;;
 *)
