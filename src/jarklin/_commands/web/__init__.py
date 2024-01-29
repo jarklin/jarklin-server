@@ -41,14 +41,14 @@ def run() -> None:
     app.config['SESSION_REFRESH_EACH_REQUEST'] = \
         config.getboolean('web', 'session', 'refresh_each_request', fallback=False)
 
-    if config.getbool('web', 'gzip', fallback=True):
+    if config.getboolean('web', 'gzip', fallback=True):
         from flask_compress import Compress  # no need to load unless required
         Compress(app)
 
     # pip install flask-kaccel for nginx
     # app.config['USE_X_SENDFILE'] = config.getboolean('web', 'x_sendfile', fallback=False)
 
-    if config.getbool('web', 'proxy_fix', fallback=None) is not None:
+    if config.getboolean('web', 'proxy_fix', fallback=None) is not None:
         app.wsgi_app = ProxyFix(
             app=app,
             x_for=config.getint('web', 'proxy_fix', 'x_forwarded_for', fallback=1),
