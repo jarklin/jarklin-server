@@ -4,3 +4,4 @@
 /dist/
 /requirements.txt  # generated during actions
 /src/jarklin/web/web-ui/
+/requirements.txt

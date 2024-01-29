@@ -17,6 +17,7 @@ mkdir -p "dist/"
 echo "Copying code..."
 cp -Lr "src/jarklin/" "dist/jarklin/"
 cp README.md "dist/jarklin/"
+cp requirements.txt "dist/jarklin/"
 
 # cleanup of copied
 find dist/jarklin -type d -iname __pycache__ -prune -exec rm -rf "{}" \;
@@ -39,6 +40,9 @@ $(sed 's/^/ /' /etc/os-release)
 
 cp build-files/jarklin.run dist/jarklin/jarklin
 chmod +x dist/jarklin/jarklin
+
+cp build-files/util.sh dist/jarklin/util.sh
+chmod +x dist/jarklin/util.sh
 
 mkdir -p dist/jarklin/web/web-ui/
 
