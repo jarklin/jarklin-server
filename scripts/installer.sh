@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
 set -e  # fail on any error
 shopt -s nullglob  # dont return the glob-pattern if nothing found
 
@@ -48,6 +47,10 @@ else
     wget "https://github.com/jarklin/jarklin-web/releases/download/latest/web-ui.tgz" -O "$WEB_UI_ARCHIVE"
 fi
 
+if [ -f "jarklin/" ]; then
+  info "Removing old jarklin"
+  rm -rf jarklin/
+fi
 info "Extracting jarklin..."
 tar -xf "$JARKLIN_ARCHIVE" -C "."
 
