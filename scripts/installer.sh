@@ -61,6 +61,10 @@ rm -rf "jarklin/_deps/"
 mkdir -p "jarklin/_deps/"
 python3 -m pip install -r "jarklin/requirements.txt" -t "jarklin/_deps/" --disable-pip-version-check
 
+if ! command -v ffmpeg &>/dev/null; then
+  error "ffmpeg not found. Please install"
+fi
+
 echo
 success "Jarklin is now installed"
 echo
