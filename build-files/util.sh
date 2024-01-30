@@ -45,25 +45,15 @@ function warn() {
 
 # {your commands here}
 
-function reinstall_dependencies() {
-  rm -rf "_deps/"
-  mkdir -p "_deps/"
-  python3 -m pip install -r "requirements.txt" -t "_deps/" --no-compile --disable-pip-version-check
-  success "Dependencies reinstalled"
-}
-
 ################################################################################
 # execution
 ################################################################################
 
 function print_help() {
-    echo "util.sh {help,reinstall-dependencies}"
+    echo "util.sh {help}"
 }
 
 case "$1" in
-"reinstall-dependencies" | "reinstall-deps")
-  reinstall_dependencies "${@:2}"
-;;
 "help" | "--help" | "-h" | "")
   print_help "${@:2}"
 ;;
