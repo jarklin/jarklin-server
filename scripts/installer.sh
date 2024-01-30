@@ -50,16 +50,18 @@ fi
 
 info "Extracting jarklin..."
 tar -xf "$JARKLIN_ARCHIVE" -C "."
-#rm "$JARKLIN_ARCHIVE"
 
 info "Installing web-ui..."
 tar -xf "$WEB_UI_ARCHIVE" -C "$WEB_UI_DIR"
-#rm "$WEB_UI_ARCHIVE"
 
 info "Installing dependencies..."
 rm -rf "jarklin/_deps/"
 mkdir -p "jarklin/_deps/"
 python3 -m pip install -r "jarklin/requirements.txt" -t "jarklin/_deps/" --disable-pip-version-check
+
+info "Cleanup..."
+rm "$JARKLIN_ARCHIVE"
+rm "$WEB_UI_ARCHIVE"
 
 if ! command -v ffmpeg &>/dev/null; then
   error "ffmpeg not found. Please install"
