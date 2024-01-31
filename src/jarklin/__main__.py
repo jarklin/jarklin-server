@@ -3,6 +3,7 @@ r"""
 
 """
 import sys
+import argparse
 import argparse as ap
 from . import __version__
 from . import _commands as commands
@@ -12,11 +13,19 @@ try:
 except ModuleNotFoundError:
     pass
 
+
+class VerifyJarklinAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        sys.stdout.write("jarklin")
+        parser.exit()
+
+
 # ==================================================================================================================== #
 
 parser = ap.ArgumentParser('jarklin', description=__doc__, formatter_class=ap.ArgumentDefaultsHelpFormatter)
 parser.set_defaults(fn=parser.print_help)
 parser.add_argument('-v', '--version', action='version', version=__version__)
+parser.add_argument('--verify-jarklin', action=VerifyJarklinAction)
 subparsers = parser.add_subparsers()
 
 # ==================================================================================================================== #

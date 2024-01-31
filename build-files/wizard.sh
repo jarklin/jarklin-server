@@ -14,8 +14,15 @@ fi
 
 ROOT="$(realpath "$(dirname "$(realpath "$0")")/")"
 
+
+function info() {
+  echo -e "\e[33m" "$@" "\e[39m"
+}
+
+
 # shellcheck disable=SC2120
-function wiz_ask_directory {
+function wiz_ask_directory() {
+  SELECTED="."
   TITLE="Jarklin-Wizard"
   TEXT="Select a directory"
 
@@ -30,13 +37,17 @@ function wiz_ask_directory {
         shift; shift;
       ;;
     *)
-      echo "unknown parameter '$1'"
-      exit 1
+      if [ "$SELECTED" = "." ]; then
+        SELECTED="$1"
+      else
+        echo "unknown parameter '$1'"
+        exit 1
+      fi
       ;;
     esac
   done
 
-  SELECTED=$(realpath ".")
+  SELECTED=$(realpath "$SELECTED")
   while true; do
     OPTIONS=("." "." ".." "..")
     for entry in "$SELECTED"/*/; do
@@ -58,26 +69,84 @@ function wiz_ask_directory {
 
 
 function wiz_download_jarklin() {
-    wget -q "https://github.com/jarklin/jarklin/releases/download/latest/jarklin.tgz" -O "$1"
+    wget "https://github.com/jarklin/jarklin/releases/download/latest/jarklin.tgz" -O "$1"
 }
 
 function wiz_download_web_ui() {
-    wget -q "https://github.com/jarklin/jarklin-web/releases/download/latest/web-ui.tgz" -O "$1"
+    wget "https://github.com/jarklin/jarklin-web/releases/download/latest/web-ui.tgz" -O "$1"
 }
 
 function wizard_install() {
-  whiptail --title "Jarklin-Wizard - Install" --msgbox "Install" 20 60
+  FEATURES=$(
+    whiptail --title "Jarklin-Wizard - Install" --checklist "Which features do you want to install?" 20 60 10 --notags --separate-output \
+    "jarklin" "Jarklin server/backend" ON \
+    "web-ui" "Default WEB-UI" ON \
+    3>&2 2>&1 1>&3
+#    "web.service" "jarklin-server.service" OFF \
+#    "cache.service" "jarklin-cache.service" OFF \
+  )
+  JARKLIN=false
+  WEB_UI=false
+#  WEB_SERVICE=false
+#  CACHE_SERVICE=false
+  for FEATURE in $FEATURES; do
+    case $FEATURE in
+    "jarklin") JARKLIN=true ;;
+    "web-ui") WEB_UI=true ;;
+#    "web.service") WEB_SERVICE=true ;;
+#    "cache.service") CACHE_SERVICE=true ;;
+    esac
+  done
+
+  if [ $JARKLIN = true ] && [ -d "./jarklin/" ] && ! whiptail --yesno "./jarklin/ seems to exist. It will be overwritten." 20 60 --yes-button "Continue" --no-button "Cancel"; then
+    return 0;
+  fi
+
+  if [ $JARKLIN = true ]; then
+    JARKLIN_ARCHIVE="./jarklin.tgz"
+    info "Downloading Jarklin..."
+    wiz_download_jarklin "$JARKLIN_ARCHIVE"
+    info "Extracting Jarklin..."
+    tar -xf "$JARKLIN_ARCHIVE" -C .
+    rm "$JARKLIN_ARCHIVE"
+
+    info "Installing dependencies..."
+    rm -rf "jarklin/_deps/"
+    mkdir -p "jarklin/_deps/"
+    python3 -m pip install -r "jarklin/requirements.txt" -t "jarklin/_deps/" --disable-pip-version-check
+  fi
+
+  if [ $WEB_UI = true ]; then
+    WEB_UI_ARCHIVE="./jarklin.tgz"
+    WEB_UI_DIR="./jarklin/web/web-ui/"
+    info "Downloading Web-UI..."
+    wiz_download_web_ui "$WEB_UI_ARCHIVE"
+    mkdir -p "$WEB_UI_DIR"
+    info "Extracting Web-UI..."
+    tar -xf "$WEB_UI_ARCHIVE" -C "$WEB_UI_DIR"
+    rm "$WEB_UI_ARCHIVE"
+  fi
+
+  whiptail --title "Jarklin-Wizard - Install" --msgbox "Jarklin was successfully installed" 20 60
 }
 
 function wizard_update() {
-  CWD=$(pwd)
   cd "$ROOT"
-  whiptail --title "Jarklin-Wizard - Update" --msgbox "Update" 20 60
-  cd "$CWD"
+  whiptail --title "Jarklin-Wizard - Update" --msgbox "Update is currently not available.\nReinstalling should do the job." 20 60
 }
 
 function wizard_uninstall() {
-  whiptail --title "Jarklin-Wizard - Uninstall" --msgbox "Uninstall" 20 60
+#  whiptail --title "Jarklin-Wizard - Uninstall" --msgbox "Uninstall" 20 60
+  cd "$ROOT/../"  # folder above jarklin
+  # cant find jarklin-executable which means was started via `wget wizard.sh | bash` or so
+  if [ ! -f "./jarklin/jarklin" ] || [ "$("./jarklin/jarklin" --verify-jarklin)" != "jarklin" ]; then
+    whiptail --title "Jarklin-Wizard - Uninstall" --msgbox "Could not find Jarklin installation\n($(pwd))" 20 60
+    return 0
+  fi
+  if whiptail --title "$TITLE - Auth" --yesno "Are you sure want to uninstall Jarklin?\n$ROOT" 20 60; then
+    rm -rf "./jarklin"
+    whiptail --title "Jarklin-Wizard - Uninstall" --msgbox "Jarklin was uninstalled" 20 60
+  fi
 }
 
 function wizard_create_config() {
@@ -165,7 +234,9 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
 }
 
 function wizard_main() {
+  CWD="$(pwd)"
   while true; do
+    cd "$CWD"
     CHOICE=$(whiptail --title "Jarklin-Wizard" --menu "What do you want to do?" 20 60 10 --nocancel --notags \
       "install" "Install Jarklin" \
       "update" "Update Jarklin" \
