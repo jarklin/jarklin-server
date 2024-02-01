@@ -238,25 +238,14 @@ function wizard_main() {
   while true; do
     cd "$CWD"
     CHOICE=$(whiptail --title "Jarklin-Wizard" --menu "What do you want to do?" 20 60 10 --nocancel --notags \
-      "install" "Install Jarklin" \
-      "update" "Update Jarklin" \
-      "uninstall" "Uninstall Jarklin" \
-      "create_config" "Generate a new config" \
+      "wizard_install" "Install Jarklin" \
+      "wizard_update" "Update Jarklin" \
+      "wizard_uninstall" "Uninstall Jarklin" \
+      "wizard_create_config" "Generate a new config" \
       "exit" "Exit the Wizard" \
       3>&2 2>&1 1>&3
       )
-    case $CHOICE in
-    "install")
-      wizard_install ;;
-    "update")
-      wizard_install ;;
-    "uninstall")
-      wizard_uninstall ;;
-    "create_config")
-      wizard_create_config ;;
-    "exit")
-      exit 0 ;;
-    esac
+    "$CHOICE"
   done
 }
 
