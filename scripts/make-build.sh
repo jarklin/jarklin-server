@@ -46,7 +46,7 @@ chmod +x dist/jarklin/jarklin
 #cp build-files/util.sh dist/jarklin/util.sh
 #chmod +x dist/jarklin/util.sh
 
-cp build-files/wizard.sh dist/jarklin/wizard
+cp scripts/wizard.sh dist/jarklin/wizard
 chmod +x dist/jarklin/wizard
 
 mkdir -p dist/jarklin/web/web-ui/
