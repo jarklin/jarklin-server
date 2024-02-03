@@ -11,6 +11,7 @@ python-magic = "*"
 config-library = {extras = ["yaml"], version = "*"}
 flask-compress = "*"
 waitress = "*"
+schedule = "*"
 
 [dev-packages]
 better-exceptions = "*"

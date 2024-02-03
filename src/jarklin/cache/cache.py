@@ -11,7 +11,7 @@ from pathlib import Path
 from functools import cached_property
 from configlib import ConfigInterface
 from ..common.types import InfoEntry
-from ..common.dot_ignore import DotIgnore
+from ..common import dot_ignore, scheduling
 from ._cache_generator import CacheGenerator
 from .video import VideoCacheGenerator
 from .gallery import GalleryCacheGenerator
@@ -23,12 +23,12 @@ __all__ = ['Cache']
 
 class Cache:
     def __init__(self, config: ConfigInterface) -> None:
-        self._shutdown: bool = False
+        self._shutdown_event = None
         self._config = config
 
     @cached_property
-    def ignorer(self) -> 'DotIgnore':
-        return DotIgnore(
+    def ignorer(self) -> 'dot_ignore.DotIgnore':
+        return dot_ignore.DotIgnore(
             *self._config.getsplit('cache', 'ignore', fallback=[]),
             ".*",  # .jarklin/ | .jarklin.{ext}
             root=self.root,
@@ -50,11 +50,31 @@ class Cache:
         directory.mkdir(parents=True, exist_ok=True)
         return directory
 
+    # todo: replace with file-system-monitoring
     def run(self) -> None:
-        self.iteration()
+        import time
+        import schedule
+
+        scheduler = schedule.Scheduler()
+        scheduler.every(1).hour.at(":00").do(self.iteration)
+        shutdown_event, thread = scheduling.run_continuously(scheduler, interval=5)
+        self._shutdown_event = shutdown_event
+        try:
+            while thread.is_alive():
+                time.sleep(5)  # tiny bit larger for less resources
+        except KeyboardInterrupt:
+            logging.info("shutdown signal received. graceful shutdown")
+            # attempt a graceful shutdown
+            shutdown_event.set()
+            while thread.is_alive():
+                time.sleep(1)
+        finally:
+            self._shutdown_event = None
 
     def shutdown(self) -> None:
-        self._shutdown = True
+        if self._shutdown_event is None:
+            raise RuntimeError("cache is not running")
+        self._shutdown_event.set()
 
     def remove(self, ignore_errors: bool = False) -> None:
         shutil.rmtree(self.jarklin_path, ignore_errors=ignore_errors)
@@ -79,7 +99,7 @@ class Cache:
         info: t.List[InfoEntry] = []
         generators: t.List[CacheGenerator] = self.find_generators()
 
-        def generate_info():
+        def generate_info_file():
             logging.info("generating info.json")
             with open(self.root.joinpath('.jarklin/info.json'), 'w') as fp:
                 fp.write(json.dumps(info))
@@ -95,7 +115,7 @@ class Cache:
                 except Exception as error:
                     logging.error(f"Cache: generation failed ({generator})", exc_info=error)
                     continue
-                generate_info()
+                generate_info_file()
             info.append(InfoEntry(
                 path=str(source.relative_to(self.root)),
                 name=source.stem,
@@ -105,7 +125,7 @@ class Cache:
                 meta=json.loads(dest.joinpath("meta.json").read_bytes()),
             ))
 
-        generate_info()
+        generate_info_file()
 
     def find_generators(self) -> t.List[CacheGenerator]:
         generators: t.List[CacheGenerator] = []
