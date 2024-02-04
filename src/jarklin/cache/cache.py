@@ -143,6 +143,7 @@ class Cache:
 
                 if is_gallery(source):
                     generators.append(GalleryCacheGenerator(source=source, dest=dest, config=self._config))
+
             # videos
             for filename in filenames[:]:
                 source = Path(root, filename)

@@ -12,6 +12,7 @@ config-library = {extras = ["yaml"], version = "*"}
 flask-compress = "*"
 waitress = "*"
 schedule = "*"
+wcmatch = "*"
 
 [dev-packages]
 better-exceptions = "*"

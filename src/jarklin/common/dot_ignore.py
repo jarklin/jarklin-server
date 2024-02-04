@@ -2,12 +2,11 @@
 r"""
 
 """
-import logging
 import re
 import os
-import os.path as p
 import typing as t
-import fnmatch
+import os.path as p
+import wcmatch.glob as wcglob
 
 
 PathResource: t.TypeAlias = t.Union[str, os.PathLike]
@@ -21,7 +20,6 @@ class DotIgnore:
 
         root = p.abspath(root)
         for rule in rules:
-            rule = rule.strip()
             negated = rule.startswith("!")
             if negated:
                 rule = rule[1:]
@@ -29,12 +27,13 @@ class DotIgnore:
             if rule.startswith("/"):
                 rule = f"{root}{rule}"
             else:
-                rule = f"*/{rule}"
+                rule = f"**/{rule}"
 
-            if rule.endswith("/"):  # currently directory-detection not supported
-                rule = rule[:-1]
+                if rule.endswith("/"):  # currently directory-detection not supported
+                    rule = rule[:-1]
 
-            self._rules.append((negated, re.compile(fnmatch.translate(rule).replace(".*", "[^/]*"))))
+            (pattern, *_), _ = wcglob.translate(rule, flags=wcglob.IGNORECASE | wcglob.GLOBSTAR)
+            self._rules.append((negated, re.compile(pattern)))
 
     def ignored(self, path: PathResource) -> bool:
         path = p.abspath(path)
