@@ -39,8 +39,8 @@ def is_video_file(fp: PathSource) -> bool:
 def is_gallery(fp: PathSource, boundary: int = 5) -> bool:
     fp = Path(fp)
     return fp.is_dir() and len([
-        f for f in fp.iterdir()
-        if any_number.search(fp.stem) is not None and is_image_file(f)
+        fn for fn in fp.iterdir()
+        if any_number.search(fn.stem) is not None and is_image_file(fn)
     ]) > boundary
 
 
