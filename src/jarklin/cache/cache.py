@@ -107,7 +107,7 @@ class Cache:
         for generator in generators:
             source = generator.source
             dest = generator.dest
-            logging.info(f"Cache: adding {generator}")
+            logging.debug(f"Cache: adding {generator}")
             if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
                 logging.info(f"Cache: generating {generator}")
                 try:
@@ -128,6 +128,7 @@ class Cache:
         generate_info_file()
 
     def find_generators(self) -> t.List[CacheGenerator]:
+        logging.info("Collecting Generators")
         generators: t.List[CacheGenerator] = []
 
         for root, dirnames, filenames in os.walk(self.root):

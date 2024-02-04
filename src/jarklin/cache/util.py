@@ -17,9 +17,9 @@ except ImportError:  # not found or system has not libmagic.c stuff
 any_number = re.compile(r"\d")
 
 
-def get_mimetype(fp: PathSource) -> str:
+def get_mimetype(fp: PathSource, *, quick: bool = True) -> str:
     fp = Path(fp)
-    if magic:
+    if magic and not quick:
         try:
             return magic.from_file(fp, mime=True)
         except (IsADirectoryError, FileNotFoundError):
