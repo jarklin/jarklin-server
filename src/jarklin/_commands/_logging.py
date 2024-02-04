@@ -18,6 +18,7 @@ def configure_logging(config: ConfigInterface) -> None:
     if config.getboolean('logging', 'console', fallback=True):
         handlers.append(logging.StreamHandler())
         handlers[-1].setFormatter(logging.Formatter(SHORT_LOGGING_FORMAT, DEFAULT_DATEFORMAT, '{'))
+        handlers[-1].addFilter(PillowFilter())
 
     if config.has('logging', 'file'):
         filename = config.getstr('logging', 'file', 'path', fallback=".jarklin/logs/jarklin.log")
@@ -30,6 +31,7 @@ def configure_logging(config: ConfigInterface) -> None:
             delay=True,
         ))
         handlers[-1].setFormatter(logging.Formatter(LONG_LOGGING_FORMAT, DEFAULT_DATEFORMAT, '{'))
+        handlers[-1].addFilter(PillowFilter())
 
     logging.basicConfig(
         level=config.getstr('logging', 'level', fallback="WARNING").upper(),
@@ -39,4 +41,7 @@ def configure_logging(config: ConfigInterface) -> None:
         handlers=handlers,
     )
 
-    logging.getLogger("PIL.Image").setLevel(logging.WARNING)
+
+class PillowFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord):
+        return not record.name.startswith('PIL.')
