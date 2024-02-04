@@ -116,14 +116,17 @@ class Cache:
                     logging.error(f"Cache: generation failed ({generator})", exc_info=error)
                     continue
                 generate_info_file()
-            info.append(InfoEntry(
-                path=str(source.relative_to(self.root)),
-                name=source.stem,
-                ext=source.suffix,
-                ctime=get_ctime(source),
-                mtime=get_mtime(source),
-                meta=json.loads(dest.joinpath("meta.json").read_bytes()),
-            ))
+            try:
+                info.append(InfoEntry(
+                    path=str(source.relative_to(self.root)),
+                    name=source.stem,
+                    ext=source.suffix,
+                    ctime=get_ctime(source),
+                    mtime=get_mtime(source),
+                    meta=json.loads(dest.joinpath("meta.json").read_bytes()),
+                ))
+            except FileNotFoundError:
+                continue
 
         generate_info_file()
 
