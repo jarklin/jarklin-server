@@ -78,6 +78,10 @@ def get_mtime(path: PathSource) -> float:
     if path.is_file():
         return path.stat().st_mtime
     elif path.is_dir():
-        return max(p.stat().st_mtime for p in path.iterdir() if p.is_file())
+        times = [p.stat().st_mtime for p in path.iterdir() if p.is_file()]
+        minimum = min(times)
+        maximum = max(times)
+        # assume that it took at least one hour for the gallery to be created (e.g. download-time)
+        return maximum if maximum > (minimum + 3600) else minimum
     else:
         raise ValueError(f"can't get mtime for {str(path)!r}")
