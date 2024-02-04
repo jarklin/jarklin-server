@@ -89,6 +89,7 @@ class VideoCacheGenerator(CacheGenerator):
             .filter('select', "+".join(f"eq(n,{frame})" for frame in extract_frames))
             .filter('scale', *scale)
             .output(str(self.previews_cache.joinpath("%d.jpg")), vframes=len(extract_frames), vsync=0)
+            # .global_args('-threads', str(self.config.getint('cache', 'video', 'ffmpeg', 'threads', fallback=0)))
             .run(quiet=True, overwrite_output=True)
         )
 

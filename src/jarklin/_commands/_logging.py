@@ -12,7 +12,7 @@ LONG_LOGGING_FORMAT = "{asctime} | {levelname:.3} | {name} | {module} | {funcNam
 DEFAULT_DATEFORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-def configure_logging(config: ConfigInterface):
+def configure_logging(config: ConfigInterface) -> None:
     handlers = []
 
     if config.getboolean('logging', 'console', fallback=True):

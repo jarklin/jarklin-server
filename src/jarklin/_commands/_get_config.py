@@ -5,6 +5,7 @@ r"""
 from functools import cache
 import configlib.finder
 from ._logging import configure_logging
+from ._process_config import configure_process
 
 
 @cache
@@ -22,4 +23,5 @@ def get_config() -> 'configlib.ConfigInterface':
     else:
         config = configlib.load(fp=fp)
         configure_logging(config=config)
+        configure_process(config=config)
         return config
