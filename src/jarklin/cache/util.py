@@ -5,6 +5,7 @@ r"""
 import re
 import logging
 import mimetypes
+import os.path as p
 from pathlib import Path
 from ..common.types import PathSource
 try:
@@ -52,10 +53,10 @@ def is_deprecated(source: PathSource, dest: PathSource) -> bool:
     if not dest.exists():
         return True
     if source.is_dir():  # gallery
-        source_mtime = max(fp.stat().st_mtime for fp in source.iterdir() if fp.is_file())
+        source_mtime = max(p.getmtime(fp) for fp in source.iterdir() if fp.is_file())
     else:
-        source_mtime = source.stat().st_mtime
-    return source_mtime > dest.stat().st_mtime
+        source_mtime = p.getmtime(source)
+    return source_mtime > p.getmtime(dest)
 
 
 def is_incomplete(dest: PathSource) -> bool:
@@ -63,22 +64,23 @@ def is_incomplete(dest: PathSource) -> bool:
     return next(dest.glob("*.type"), None) is None
 
 
-def get_ctime(path: PathSource) -> float:
+def get_creation_time(path: PathSource) -> float:
+    # fixme: ctime != creation-time on unix
     path = Path(path)
     if path.is_file():
-        return path.stat().st_ctime
+        return int(p.getctime(path))
     elif path.is_dir():
-        return min(p.stat().st_ctime for p in path.iterdir() if p.is_file())
+        return min(int(p.getctime(fp)) for fp in path.iterdir() if fp.is_file())
     else:
         raise ValueError(f"can't get ctime for {str(path)!r}")
 
 
-def get_mtime(path: PathSource) -> float:
+def get_modification_time(path: PathSource) -> float:
     path = Path(path)
     if path.is_file():
-        return path.stat().st_mtime
+        return int(p.getmtime(path))
     elif path.is_dir():
-        times = [p.stat().st_mtime for p in path.iterdir() if p.is_file()]
+        times = [int(p.getmtime(fp)) for fp in path.iterdir() if fp.is_file()]
         minimum = min(times)
         maximum = max(times)
         # assume that it took at least one hour for the gallery to be created (e.g. download-time)

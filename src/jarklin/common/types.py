@@ -17,8 +17,8 @@ class InfoEntry(_t.TypedDict):
     path: str
     name: str
     ext: str
-    ctime: float
-    mtime: float
+    creation_time: float
+    modification_time: float
     meta: _t.Union['GalleryMeta', 'VideoMeta']
 
 
