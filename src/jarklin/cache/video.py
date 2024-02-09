@@ -197,11 +197,11 @@ class VideoCacheGenerator(CacheGenerator):
             ) for stream in self.video_streams],
             audio_streams=[AudioStreamMeta(
                 is_default=bool(stream['disposition']['default']),
-                language=stream['tags'].get('language', "<unknown>"),
+                language=stream.get('tags', {}).get('language', "<unknown>"),
             ) for stream in self.audio_streams],
             subtitles=[SubtitleStreamMeta(
                 is_default=bool(stream['disposition']['default']),
-                language=stream['tags'].get('language', "<unknown>"),
+                language=stream.get('tags', {}).get('language', "<unknown>"),
             ) for stream in self.subtitle_streams],
             chapters=[ChapterMeta(
                 id=chapter['id'],
@@ -209,7 +209,7 @@ class VideoCacheGenerator(CacheGenerator):
                 start_time=float(chapter['start_time']),
                 # end=chapter['end'],
                 end_time=float(chapter['end_time']),
-                title=chapter['tags']['title'],
+                title=chapter.get('tags', {})['title'],
             ) for chapter in self.chapters],
         )
 

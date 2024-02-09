@@ -108,15 +108,15 @@ class Cache:
             source = generator.source
             dest = generator.dest
             logging.debug(f"Cache: adding {generator}")
-            if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
-                logging.info(f"Cache: generating {generator}")
-                try:
-                    generator.generate()
-                except Exception as error:
-                    logging.error(f"Cache: generation failed ({generator})", exc_info=error)
-                    continue
-                generate_info_file()
             try:
+                if is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
+                    logging.info(f"Cache: generating {generator}")
+                    try:
+                        generator.generate()
+                    except Exception as error:
+                        logging.error(f"Cache: generation failed ({generator})", exc_info=error)
+                        continue
+                    generate_info_file()
                 info.append(InfoEntry(
                     path=str(source.relative_to(self.root)),
                     name=source.stem,
@@ -125,7 +125,8 @@ class Cache:
                     modification_time=get_modification_time(source),
                     meta=json.loads(dest.joinpath("meta.json").read_bytes()),
                 ))
-            except FileNotFoundError:
+            except FileNotFoundError as error:
+                logging.error(f"Cache: {generator} failed", exc_info=error)
                 continue
 
         generate_info_file()
