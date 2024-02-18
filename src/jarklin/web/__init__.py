@@ -7,7 +7,7 @@ import os.path as p
 from http import HTTPStatus
 from hmac import compare_digest
 import flask
-from werkzeug.exceptions import Unauthorized, BadRequest
+from werkzeug.exceptions import Unauthorized as HTTPUnauthorized, BadRequest as HTTPBadRequest, NotFound as HTTPNotFound
 
 
 WEB_UI = p.join(p.dirname(__file__), 'web-ui')
@@ -20,7 +20,7 @@ def is_authenticated(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if app.config.get("USERPASS") and 'username' not in flask.session:
-            raise Unauthorized("currently not logged in")
+            raise HTTPUnauthorized("currently not logged in")
         return fn(*args, **kwargs)
 
     return wrapper
@@ -29,6 +29,9 @@ def is_authenticated(fn):
 @app.get("/files/<path:resource>")
 @is_authenticated
 def files(resource: str, download: bool = False):
+    fp = p.join(os.getcwd(), resource)
+    if fp in app.config['EXCLUDE']:
+        raise HTTPNotFound()
     return flask.send_from_directory(os.getcwd(), resource, as_attachment=download)
 
 
@@ -48,10 +51,10 @@ def login():
 
     username, password = flask.request.form.get("username"), flask.request.form.get("password")
     if not username or not password:
-        raise BadRequest("username or password missing in authorization")
+        raise HTTPBadRequest("username or password missing in authorization")
 
     if username not in userpass or not compare_digest(password, userpass[username]):
-        raise Unauthorized("bad credentials provided")
+        raise HTTPUnauthorized("bad credentials provided")
     flask.session['username'] = username
     return "", HTTPStatus.NO_CONTENT
 

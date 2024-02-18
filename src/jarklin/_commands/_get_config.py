@@ -2,14 +2,21 @@
 r"""
 
 """
+import typing as t
 from functools import cache
 import configlib.finder
 from ._logging import configure_logging
 from ._process_config import configure_process
 
 
+@t.overload
+def get_config() -> 'configlib.ConfigInterface': ...
+@t.overload
+def get_config(return_fp: bool = True) -> t.Tuple['configlib.ConfigInterface', str]: ...
+
+
 @cache
-def get_config() -> 'configlib.ConfigInterface':
+def get_config(return_fp: bool = False):
     try:
         fp = configlib.find(
             ".jarklin.ext",
@@ -24,4 +31,7 @@ def get_config() -> 'configlib.ConfigInterface':
         config = configlib.load(fp=fp)
         configure_logging(config=config)
         configure_process(config=config)
-        return config
+        if return_fp:
+            return config, str(fp.absolute())
+        else:
+            return config

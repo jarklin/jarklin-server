@@ -5,6 +5,7 @@ r"""
 
 
 def run() -> None:
+    import os.path as p
     import flask
     import secrets
     from werkzeug.middleware.dispatcher import DispatcherMiddleware
@@ -12,7 +13,9 @@ def run() -> None:
     from .._get_config import get_config
     from ...web import app
 
-    config = get_config()
+    config, config_fp = get_config(return_fp=True)
+
+    app.config['EXCLUDE'] = [config_fp]
 
     baseurl = config.getstr('web', 'baseurl', fallback="/")
     if not baseurl.startswith("/"):
@@ -31,7 +34,9 @@ def run() -> None:
         app.config['USERPASS'][simple_username] = simple_password
     if config.has('web', 'auth', 'userpass'):
         from ...common.userpass import parse_userpass
-        userpass = parse_userpass(config.getstr('web', 'auth', 'userpass'))
+        userpass_fp = p.abspath(config.getstr('web', 'auth', 'userpass'))
+        app.config['EXCLUDE'].append(userpass_fp)
+        userpass = parse_userpass(userpass_fp)
         app.config['USERPASS'].update(userpass)
 
     app.secret_key = config.getstr('web', 'session', 'secret_key', fallback=secrets.token_hex(64))
