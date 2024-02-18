@@ -19,8 +19,7 @@ def is_authenticated(fn):
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        if (app.config.get("USERNAME") is not None and app.config.get("PASSWORD") is not None
-                and 'username' not in flask.session):
+        if app.config.get("USERPASS") and 'username' not in flask.session:
             raise Unauthorized("currently not logged in")
         return fn(*args, **kwargs)
 
@@ -43,14 +42,15 @@ def get_username():
 
 @app.post("/auth/login")
 def login():
-    config_username, config_password = app.config.get("USERNAME"), app.config.get("PASSWORD")
-    if config_username is None or config_password is None:
+    userpass = app.config.get('USERPASS')
+    if not userpass:
         return "", HTTPStatus.NO_CONTENT
 
     username, password = flask.request.form.get("username"), flask.request.form.get("password")
     if not username or not password:
         raise BadRequest("username or password missing in authorization")
-    if not (compare_digest(username, config_username) and compare_digest(password, config_password)):
+
+    if username not in userpass or not compare_digest(password, userpass[username]):
         raise Unauthorized("bad credentials provided")
     flask.session['username'] = username
     return "", HTTPStatus.NO_CONTENT

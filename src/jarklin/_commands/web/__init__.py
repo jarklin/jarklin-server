@@ -24,8 +24,15 @@ def run() -> None:
             {baseurl: app.wsgi_app},
         )
 
-    app.config['USERNAME'] = config.getstr('web', 'auth', 'username', fallback=None) or None
-    app.config['PASSWORD'] = config.getstr('web', 'auth', 'password', fallback=None) or None
+    app.config['USERPASS'] = {}
+    simple_username = config.getstr('web', 'auth', 'username', fallback=None) or None
+    simple_password = config.getstr('web', 'auth', 'password', fallback=None) or None
+    if simple_username and simple_password:
+        app.config['USERPASS'][simple_username] = simple_password
+    if config.has('web', 'auth', 'userpass'):
+        from ...common.userpass import parse_userpass
+        userpass = parse_userpass(config.getstr('web', 'auth', 'userpass'))
+        app.config['USERPASS'].update(userpass)
 
     app.secret_key = config.getstr('web', 'session', 'secret_key', fallback=secrets.token_hex(64))
     if baseurl != "/":
