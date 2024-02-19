@@ -35,6 +35,11 @@ subparsers = parser.add_subparsers()
 
 # ==================================================================================================================== #
 
+run_parser = subparsers.add_parser('run')
+run_parser.set_defaults(fn=commands.run)
+
+# ==================================================================================================================== #
+
 web_parser = subparsers.add_parser('web')
 web_parser.set_defaults(fn=web_parser.print_help)
 web_subparsers = web_parser.add_subparsers()

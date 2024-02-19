@@ -62,7 +62,7 @@ class Cache:
         try:
             while thread.is_alive():
                 time.sleep(5)  # tiny bit larger for less resources
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, InterruptedError):
             logging.info("shutdown signal received. graceful shutdown")
             # attempt a graceful shutdown
             shutdown_event.set()
