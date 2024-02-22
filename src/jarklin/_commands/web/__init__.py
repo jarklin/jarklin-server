@@ -42,7 +42,7 @@ def run() -> None:
     app.secret_key = config.getstr('web', 'session', 'secret_key', fallback=secrets.token_hex(64))
     if baseurl != "/":
         app.config['SESSION_COOKIE_PATH'] = baseurl
-    session_permanent = config.getboolean('web', 'session', 'permanent', fallback=True)
+    session_permanent = config.getbool('web', 'session', 'permanent', fallback=True)
     if session_permanent:
         @app.before_request
         def make_session_permanent() -> None:
@@ -51,9 +51,9 @@ def run() -> None:
     if session_lifetime:
         app.permanent_session_lifetime = session_lifetime  # flasks default is ~31d
     app.config['SESSION_REFRESH_EACH_REQUEST'] = \
-        config.getboolean('web', 'session', 'refresh_each_request', fallback=False)
+        config.getbool('web', 'session', 'refresh_each_request', fallback=False)
 
-    if config.getboolean('web', 'gzip', fallback=True):
+    if config.getbool('web', 'gzip', fallback=True):
         from flask_compress import Compress  # no need to load unless required
         Compress(app)
 
@@ -71,7 +71,7 @@ def run() -> None:
             x_prefix=proxy_fix.getint('x_forwarded_prefix', fallback=0),
         )
 
-    if config.getboolean('web', 'debug', fallback=False):
+    if config.getbool('web', 'debug', fallback=False):
         app.run(
             debug=True,
             # host=config.getstr('web', 'host', fallback=None),

@@ -15,7 +15,7 @@ DEFAULT_DATEFORMAT = "%Y-%m-%d %H:%M:%S"
 def configure_logging(config: ConfigInterface) -> None:
     handlers = []
 
-    if config.getboolean('logging', 'console', fallback=True):
+    if config.getbool('logging', 'console', fallback=True):
         handlers.append(logging.StreamHandler())
         handlers[-1].setFormatter(logging.Formatter(SHORT_LOGGING_FORMAT, DEFAULT_DATEFORMAT, '{'))
         handlers[-1].addFilter(PillowFilter())
