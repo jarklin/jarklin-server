@@ -10,12 +10,16 @@ import typing as t
 from pathlib import Path
 from functools import cached_property
 from configlib import ConfigInterface
-from ..common.types import InfoEntry
+from ..common.types import InfoEntry, ProblemEntry
 from ..common import dot_ignore, scheduling
 from ._cache_generator import CacheGenerator
 from .video import VideoCacheGenerator
 from .gallery import GalleryCacheGenerator
 from .util import is_video_file, is_gallery, is_deprecated, is_incomplete, get_creation_time, get_modification_time
+try:
+    from better_exceptions import format_exception
+except ModuleNotFoundError:
+    from traceback import format_exception
 
 
 __all__ = ['Cache']
@@ -97,12 +101,16 @@ class Cache:
     def generate(self) -> None:
         logging.info("cache.generate()")
         info: t.List[InfoEntry] = []
+        problems: t.List[ProblemEntry] = []
         generators: t.List[CacheGenerator] = self.find_generators()
 
         def generate_info_file():
             logging.info("generating info.json")
             with open(self.root.joinpath('.jarklin/info.json'), 'w') as fp:
                 fp.write(json.dumps(info))
+            logging.info("generating problems.json")
+            with open(self.root.joinpath('.jarklin/problems.json'), 'w') as fp:
+                fp.write(json.dumps(problems))
 
         for generator in generators:
             source = generator.source
@@ -115,6 +123,12 @@ class Cache:
                         generator.generate()
                     except Exception as error:
                         logging.error(f"Cache: generation failed ({generator})", exc_info=error)
+                        problems.append(ProblemEntry(
+                            file=str(source.relative_to(self.root)),
+                            type=type(error).__name__,
+                            description=str(error),
+                            traceback='\n'.join(format_exception(type(error), error, error.__traceback__))
+                        ))
                         continue
                     generate_info_file()
                 info.append(InfoEntry(

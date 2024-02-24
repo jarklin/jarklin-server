@@ -13,6 +13,16 @@ PathSource: _t.TypeAlias = _t.Union[str, _PathLike, _Path]
 # -------------------------------------------------------------------------------------------------------------------- #
 
 
+class ProblemEntry(_t.TypedDict):
+    file: str
+    type: str
+    description: str
+    traceback: str
+
+
+# -------------------------------------------------------------------------------------------------------------------- #
+
+
 class InfoEntry(_t.TypedDict):
     path: str
     name: str
