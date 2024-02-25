@@ -137,6 +137,7 @@ function wizard_install() {
   fi
 
   if [ $BETTER_EXCEPTIONS = true ]; then
+    info "Installing better-exceptions..."
     python3 -m pip install -U better-exceptions -t "jarklin/_deps/" --disable-pip-version-check
   fi
 
