@@ -185,11 +185,19 @@ function wizard_create_config() {
     )
   fi
 
-  if whiptail --title "$TITLE - gzip" --yesno "Whether to gzip the content. Reduces the response-size and thus loading time of text-based responses on cost of CPU-Time.
+  if whiptail --title "$TITLE - Server" --yesno "Whether to gzip the content. Reduces the response-size and thus loading time of text-based responses on cost of CPU-Time.
 note: Should be done by the Proxy-Server if possible. Otherwise, this is the option." 20 60; then
     GZIP="yes"
   else
     GZIP="no"
+  fi
+
+  if whiptail --title "$TITLE - Server" --yesno "Allow media optimization.
+Enabling this option allows for faster downloads as supported media is just-in-time optimized.
+Important: only use this option for a very small userbase as it can take up lots of system-resources." 20 60; then
+    OPTIMIZE=true
+  else
+    OPTIMIZE=false
   fi
 
   if whiptail --title "$TITLE - Auth" --yesno "Do you want to require authentication?" 20 60; then
@@ -243,6 +251,9 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
       echo "    username: \"$USERNAME\""
       echo "    password: \"$PASSWORD\""
     fi
+    if [ $OPTIMIZE = true ]; then
+      echo "  optimize: yes"
+    fi
     echo "ignore:"
     if [ $WHITELIST = true ]; then
       echo "  - \"/*\""
@@ -281,10 +292,10 @@ function wizard_main() {
 }
 
 case $1 in
-#install)
-#  wizard_install ;;
-#uninstall)
-#  wizard_uninstall ;;
+install)
+  wizard_install ;;
+uninstall)
+  wizard_uninstall ;;
 "")  # no command
   wizard_main "${@:2}" ;;
 -h | --help)

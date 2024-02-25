@@ -34,3 +34,8 @@ def requires_authenticated(fn):
         return fn(*args, **kwargs)
 
     return wrapper
+
+
+def to_bool(value: str) -> bool:
+    # important: this evaluates empty strings to true (/resource?download)
+    return value.lower() in {"true", "yes", "1", ""}

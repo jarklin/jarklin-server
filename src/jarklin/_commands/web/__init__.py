@@ -53,6 +53,8 @@ def run() -> None:
     app.config['SESSION_REFRESH_EACH_REQUEST'] = \
         config.getbool('web', 'session', 'refresh_each_request', fallback=False)
 
+    app.config['JIT_OPTIMIZATION'] = config.getbool('web', 'optimize', fallback=False)
+
     if config.getbool('web', 'gzip', fallback=True):
         from flask_compress import Compress  # no need to load unless required
         Compress(app)
