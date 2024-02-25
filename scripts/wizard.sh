@@ -15,8 +15,14 @@ fi
 ROOT="$(realpath "$(dirname "$(realpath "$0")")/")"
 
 
+function success() {
+  echo -e "\e[32m" "$@" "\e[39m"
+}
 function info() {
   echo -e "\e[33m" "$@" "\e[39m"
+}
+function error() {
+  echo -e "\e[31m" "$@" "\e[39m"
 }
 
 
@@ -81,12 +87,14 @@ function wizard_install() {
     whiptail --title "Jarklin-Wizard - Install" --checklist "Which features do you want to install?" 20 60 10 --notags --separate-output \
     "jarklin" "Jarklin server/backend" ON \
     "web-ui" "Default WEB-UI" ON \
+    "better-exceptions" "Better exceptions logging" OFF \
     3>&2 2>&1 1>&3
 #    "web.service" "jarklin-server.service" OFF \
 #    "cache.service" "jarklin-cache.service" OFF \
   )
   JARKLIN=false
   WEB_UI=false
+  BETTER_EXCEPTIONS=false
 #  WEB_SERVICE=false
 #  CACHE_SERVICE=false
   for FEATURE in $FEATURES; do
@@ -95,6 +103,7 @@ function wizard_install() {
     "web-ui") WEB_UI=true ;;
 #    "web.service") WEB_SERVICE=true ;;
 #    "cache.service") CACHE_SERVICE=true ;;
+    "better-exception") BETTER_EXCEPTIONS=true;
     esac
   done
 
@@ -127,6 +136,10 @@ function wizard_install() {
     rm "$WEB_UI_ARCHIVE"
   fi
 
+  if [ $BETTER_EXCEPTIONS = true ]; then
+    python3 -m pip install -U better-exceptions -t "jarklin/_deps/" --disable-pip-version-check
+  fi
+
   whiptail --title "Jarklin-Wizard - Install" --msgbox "Jarklin was successfully installed" 20 60
 }
 
@@ -155,7 +168,11 @@ function wizard_create_config() {
   DEST=$(wiz_ask_directory --title "$TITLE" --text "Select where you want to create the config-file")
   FP="$DEST/.jarklin.yaml"
 
-  if whiptail --title "$TITLE - Server" --yesno "Bind to Port or Unix-Domain-Socket (UDS)?" --yes-button "Port" --no-button "UDS" 20 60; then
+  BASEURL=$(
+    whiptail --title "$TITLE - Server" --inputbox "Under which baseurl do you want to serve jarklin?" 20 60 "/" 3>&2 2>&1 1>&3
+  )
+
+  if whiptail --title "$TITLE - Server" --yesno "Bind to a Port or Unix-Domain-Socket (UDS)?" --yes-button "Port" --no-button "UDS" 20 60; then
     HOST=$(
       whiptail --title "$TITLE - Server" --inputbox "Host:" 20 60 "localhost" 3>&2 2>&1 1>&3
     )
@@ -164,8 +181,15 @@ function wizard_create_config() {
     )
   else
     UDS=$(
-      whiptail --title "$TITLE - Server" --inputbox "Where should the UDS be placed" 20 60 3>&2 2>&1 1>&3
+      whiptail --title "$TITLE - Server" --inputbox "Where should the UDS be placed" 20 60 "/tmp/jarklin.sock" 3>&2 2>&1 1>&3
     )
+  fi
+
+  if whiptail --title "$TITLE - gzip" --yesno "Whether to gzip the content. Reduces the response-size and thus loading time of text-based responses on cost of CPU-Time.
+note: Should be done by the Proxy-Server if possible. Otherwise, this is the option." 20 60; then
+    GZIP="yes"
+  else
+    GZIP="no"
   fi
 
   if whiptail --title "$TITLE - Auth" --yesno "Do you want to require authentication?" 20 60; then
@@ -202,6 +226,9 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
 
   {
     echo "web:"
+    if [ -n "$BASEURL" ]; then
+      echo "  baseurl: \"$BASEURL\""
+    fi
     echo "  server:"
     if [ -n "$UDS" ]; then
       echo "    unix_socket: \"$UDS\""
@@ -210,6 +237,7 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
       echo "    port: $PORT"
     fi
     echo "#    threads: 4"
+    echo "  gzip: $GZIP"
     if [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
       echo "  auth:"
       echo "    username: \"$USERNAME\""
@@ -230,23 +258,42 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
 
   } > "$FP"
 
-  whiptail --title "$TITLE" --msgbox "Config file was created\n$FP" 20 60
+  whiptail --title "$TITLE" --msgbox "Config file was created
+$FP
+
+For more or detailed options see https://jarklin.github.io/config/jarklin" 20 60
 }
 
 function wizard_main() {
   CWD="$(pwd)"
   while true; do
-    cd "$CWD"
+    cd "$CWD"  # reset in case a sub-command changes the directory
     CHOICE=$(whiptail --title "Jarklin-Wizard" --menu "What do you want to do?" 20 60 10 --nocancel --notags \
       "wizard_install" "Install Jarklin" \
-      "wizard_update" "Update Jarklin" \
       "wizard_uninstall" "Uninstall Jarklin" \
       "wizard_create_config" "Generate a new config" \
       "exit" "Exit the Wizard" \
       3>&2 2>&1 1>&3
+#      "wizard_update" "Update Jarklin" \
       )
     "$CHOICE"
   done
 }
 
-wizard_main
+case $1 in
+#install)
+#  wizard_install ;;
+#uninstall)
+#  wizard_uninstall ;;
+"")  # no command
+  wizard_main "${@:2}" ;;
+-h | --help)
+  echo "wizard [-h|--help]"
+#  echo "wizard install  -  install jarklin"
+#  echo "wizard uninstall  -  uninstall jarklin"
+;;
+*)
+  error "Unknown command '$1'"
+  exit 1
+;;
+esac
