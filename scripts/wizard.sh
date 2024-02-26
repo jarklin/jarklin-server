@@ -247,20 +247,21 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
     fi
     echo "#    threads: 4"
     echo "  gzip: $GZIP"
+    if [ $OPTIMIZE = true ]; then
+      echo "  optimize: yes"
+    fi
     if [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
       echo "  auth:"
       echo "    username: \"$USERNAME\""
       echo "    password: \"$PASSWORD\""
     fi
-    if [ $OPTIMIZE = true ]; then
-      echo "  optimize: yes"
-    fi
-    echo "ignore:"
+    echo "cache:"
+    echo "  ignore:"
     if [ $WHITELIST = true ]; then
-      echo "  - \"/*\""
-      echo "#  - \"!/allowed\""
+      echo "    - \"/*\""
+      echo "#    - \"!/allowed\""
     else
-      echo "#  - \"/hidden\""
+      echo "#    - \"/hidden\""
     fi
     echo "logging:"
     echo "  level: $LOGGINGLEVEL"
@@ -273,7 +274,7 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
   whiptail --title "$TITLE" --msgbox "Config file was created
 $FP
 
-For more or detailed options see https://jarklin.github.io/config/jarklin" 20 60
+For more or detailed options see https://jarklin.github.io/config/config-options" 20 60
 }
 
 function wizard_main() {
