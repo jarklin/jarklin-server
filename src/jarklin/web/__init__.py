@@ -2,15 +2,14 @@
 r"""
 
 """
-import io
 import os
 import os.path as p
-import mimetypes
+import logging
 from http import HTTPStatus
 import flask
-from PIL import Image
 from werkzeug.exceptions import Unauthorized as HTTPUnauthorized, BadRequest as HTTPBadRequest, NotFound as HTTPNotFound
 from .utility import requires_authenticated, validate_user, to_bool
+from . import optimization
 
 
 WEB_UI = p.join(p.dirname(__file__), 'web-ui')
@@ -20,41 +19,27 @@ app = flask.Flask(__name__, static_url_path="/", static_folder=WEB_UI, template_
 @app.get("/files/<path:resource>")
 @requires_authenticated
 def files(resource: str):
-    optimize = flask.request.args.get("optimize", default=False, type=to_bool)
-    download = flask.request.args.get("download", default=False, type=to_bool)
+    attempt_optimization = flask.request.args.get("optimize", default=False, type=to_bool)
+    as_download = flask.request.args.get("download", default=False, type=to_bool)
 
     root = p.abspath(os.getcwd())
-    fp = p.join(root, resource)
+    fp = p.abspath(p.join(root, resource))
     if fp in app.config['EXCLUDE']:
         raise HTTPNotFound()
     if p.commonpath([root, fp]) != root:
         raise HTTPNotFound(f"{fp!s}")
 
-    file = fp
+    if attempt_optimization and flask.current_app.config['JIT_OPTIMIZATION']:
+        try:
+            response = optimization.optimize_file(fp)
+            if response is not None:
+                return response
+        except NotImplementedError:  # this is fine
+            pass
+        except Exception as error:  # no-fail
+            logging.error(f"optimization for {resource!r} failed", exc_info=error)
 
-    if optimize and flask.current_app.config['JIT_OPTIMIZATION']:
-        mimetype, _ = mimetypes.guess_type(fp)
-        if mimetype and mimetype.startswith("image/"):
-            with Image.open(fp) as image:
-                # we don't support animated images
-                if not getattr(image, 'is_animated', False):
-                    # support for giant image commonly found in comics or mangas
-                    boundary = (2000, 2000)
-                    if image.width > 2 * image.height or image.height > image.width * 2:
-                        boundary = (4000, 4000)
-
-                    image.thumbnail(boundary, resample=Image.Resampling.BICUBIC)  # resize but keep aspect
-
-                    buffer = io.BytesIO()
-                    image.save(buffer, format='WEBP')  # WebP should be better than JPEG or PNG
-                    buffer.seek(0)
-                    file = buffer
-
-            if isinstance(file, io.BytesIO):
-                return flask.send_file(file, "image/webp", as_attachment=download,
-                                       download_name="optimized.webp", conditional=False, etag=False)
-
-    return flask.send_file(file, as_attachment=download)
+    return flask.send_file(fp, as_attachment=as_download)
 
 
 @app.get("/auth/username")
