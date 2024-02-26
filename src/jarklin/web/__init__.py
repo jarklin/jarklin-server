@@ -50,10 +50,6 @@ def files(resource: str):
                     buffer.seek(0)
                     file = buffer
 
-                # ensure image gets closed
-                image.close()
-                del image
-
             if isinstance(file, io.BytesIO):
                 return flask.send_file(file, "image/webp", as_attachment=download,
                                        download_name="optimized.webp", conditional=False, etag=False)
