@@ -2,8 +2,8 @@
 r"""
 
 """
-import os.path
 import logging.handlers
+from pathlib import Path
 from configlib import ConfigInterface
 
 
@@ -21,11 +21,10 @@ def configure_logging(config: ConfigInterface) -> None:
         handlers[-1].addFilter(PillowFilter())
 
     if config.has('logging', 'file'):
-        filename = config.getstr('logging', 'file', 'path', fallback=".jarklin/logs/jarklin.log")
-        filename = os.path.abspath(filename)
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        filepath = Path(config.getpath('logging', 'file', 'path', fallback=".jarklin/logs/jarklin.log")).absolute()
+        filepath.parent.mkdir(parents=True, exist_ok=True)
         handlers.append(logging.handlers.RotatingFileHandler(
-            filename=filename,
+            filename=filepath,
             maxBytes=config.getint('logging', 'file', 'max_bytes', fallback=1024*1024*5),
             backupCount=config.getint('logging', 'file', 'backup_count', fallback=5),
             delay=True,
