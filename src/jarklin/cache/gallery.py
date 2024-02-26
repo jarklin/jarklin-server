@@ -10,14 +10,14 @@ todo: support for .cb_ file formats
 todo: what if image is extremely height (eg. 512x8192)
 - crop for animated preview!?
 
-video.mp4/
-├─ preview.jpg
-├─ preview.gif
+gallery/
+├─ preview.webp
+├─ animated.webp
 ├─ previews/
-│  ├─ 1.jpg
-│  ├─ 2.jpg
+│  ├─ 1.webp
+│  ├─ 2.webp
 ├─ meta.json
-├─ video.type
+├─ gallery.type
 """
 import re
 import shutil
@@ -60,17 +60,16 @@ class GalleryCacheGenerator(CacheGenerator):
     def generate_previews(self) -> None:
         for i, info in enumerate(self.meta['images']):
             with Image.open(self.source.joinpath(info['filename'])) as image:
-                image_rgb = image.convert('RGB')
-                image_rgb.thumbnail(self.max_dimensions)
-                image_rgb.save(self.previews_dir.joinpath(f"{i+1}.jpg"), format='JPEG',
-                               progressive=True, optimize=True, quality=85)
+                image.thumbnail(self.max_dimensions)
+                image.save(self.previews_dir.joinpath(f"{i + 1}.webp"), format='WEBP',
+                           method=6, quality=80)
 
     def generate_image_preview(self) -> None:
-        first_preview = self.previews_dir.joinpath("1.jpg")
-        shutil.copyfile(first_preview, self.dest.joinpath("preview.jpg"))
+        first_preview = self.previews_dir.joinpath("1.webp")
+        shutil.copyfile(first_preview, self.dest.joinpath("preview.webp"))
 
     def generate_animated_preview(self) -> None:
-        images = sorted(self.previews_dir.glob("*.jpg"), key=lambda f: int(f.stem))[:self.max_images]
+        images = sorted(self.previews_dir.glob("*.webp"), key=lambda f: int(f.stem))[:self.max_images]
         if not images:
             raise FileExistsError("no previews found")
         with ExitStack() as stack:
@@ -79,8 +78,8 @@ class GalleryCacheGenerator(CacheGenerator):
             frames = [stack.enter_context(frame.resize(first.size)) for frame in frames]
             # minimize_size=True => warned as slow
             # method=6 => bit slower but better results
-            first.save(self.dest.joinpath("preview.webp"), format="WEBP", save_all=True, minimize_size=False,
-                       append_images=frames, duration=round(self.frame_time * 1000), loop=0, method=6, quality=100)
+            first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=False,
+                       append_images=frames, duration=round(self.frame_time * 1000), loop=0, method=6, quality=80)
 
     def generate_type(self) -> None:
         self.dest.joinpath("gallery.type").touch()

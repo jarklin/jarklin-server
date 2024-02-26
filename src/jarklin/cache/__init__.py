@@ -1,13 +1,13 @@
 # -*- coding=utf-8 -*-
 r"""
-video.mp4/
-├─ preview.jpg
-├─ preview.gif
+{gallery,video.mp4}/
+├─ preview.webp
+├─ animated.webp
 ├─ previews/
-│  ├─ 1.jpg
-│  ├─ 2.jpg
+│  ├─ 1.webp
+│  ├─ 2.webp
 ├─ meta.json
-├─ video.type
+├─ {gallery,video}.type
 """
 from .cache import Cache
 

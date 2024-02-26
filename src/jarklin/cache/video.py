@@ -1,11 +1,11 @@
 # -*- coding=utf-8 -*-
 r"""
 video.mp4/
-├─ preview.jpg
-├─ preview.gif
+├─ preview.webp
+├─ animated.webp
 ├─ previews/
-│  ├─ 1.jpg
-│  ├─ 2.jpg
+│  ├─ 1.webp
+│  ├─ 2.webp
 ├─ meta.json
 ├─ video.type
 """
@@ -88,34 +88,31 @@ class VideoCacheGenerator(CacheGenerator):
             .input(str(self.source))
             .filter('select', "+".join(f"eq(n,{frame})" for frame in extract_frames))
             .filter('scale', *scale)
-            .output(str(self.previews_cache.joinpath("%d.jpg")), vframes=len(extract_frames), vsync=0)
+            .output(str(self.previews_cache.joinpath("%d.png")), vframes=len(extract_frames), vsync=0)
             # .global_args('-threads', str(self.config.getint('cache', 'video', 'ffmpeg', 'threads', fallback=0)))
             .run(quiet=True, overwrite_output=True)
         )
 
-        logging.debug(f"{self}: copying frames to previews/")
-        for i in range(len(main_frames)):
-            shutil.copyfile(
-                self.previews_cache.joinpath(f"{round(i * self.seconds_per_scene * self.scene_fps)+1}.jpg"),
-                self.previews_dir.joinpath(f"{i+1}.jpg")
-            )
+        logging.debug(f"{self}: copying main-frames to previews/")
+        for i, j in enumerate(range(0, len(extract_frames), len(scene_offsets))):
+            source = self.previews_cache.joinpath(f"{j+1}.png")
+            dest = self.previews_dir.joinpath(f"{i+1}.webp")
+            with Image.open(source) as image:
+                image.save(dest, format='WEBP', method=6, quality=80)
 
     def generate_image_preview(self) -> None:
         # prefer the second as the first could be producer-logo
-        preview_source = self.previews_dir.joinpath("2.jpg")
+        preview_source = self.previews_dir.joinpath("2.webp")
         if not preview_source.is_file():
-            preview_source = self.previews_dir.joinpath("1.jpg")
-        shutil.copyfile(preview_source, self.dest.joinpath("preview.jpg"))
+            preview_source = self.previews_dir.joinpath("1.webp")
+        shutil.copyfile(preview_source, self.dest.joinpath("preview.webp"))
 
     def generate_animated_preview(self) -> None:
-        images = sorted(self.previews_cache.glob("*.jpg"), key=lambda f: int(f.stem))
+        images = sorted(self.previews_cache.glob("*.png"), key=lambda f: int(f.stem))
         with ExitStack() as stack:
             first, *frames = (stack.enter_context(Image.open(fp)) for fp in images)
-            # minimize_size=True => warned as slow
-            # method=6 => bit slower but better results
-            # note: too many images to use quality=100
-            first.save(self.dest.joinpath("preview.webp"), format="WEBP", save_all=True, minimize_size=False,
-                       append_images=frames, duration=round(1000 / self.scene_fps), loop=0, method=6)  # , quality=100
+            first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=False,
+                       append_images=frames, duration=round(1000 / self.scene_fps), loop=0, method=6, quality=80)
 
     def generate_type(self):
         self.dest.joinpath("video.type").touch()

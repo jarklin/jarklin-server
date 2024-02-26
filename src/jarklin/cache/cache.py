@@ -81,7 +81,7 @@ class Cache:
         self._shutdown_event.set()
 
     def remove(self, ignore_errors: bool = False) -> None:
-        shutil.rmtree(self.jarklin_path, ignore_errors=ignore_errors)
+        shutil.rmtree(self.jarklin_cache, ignore_errors=ignore_errors)
 
     def iteration(self) -> None:
         self.invalidate()
@@ -129,6 +129,8 @@ class Cache:
                             description=str(error),
                             traceback='\n'.join(format_exception(type(error), error, error.__traceback__))
                         ))
+                        if dest.is_dir():
+                            shutil.rmtree(dest, ignore_errors=True)
                         continue
                     generate_info_file()
                 info.append(InfoEntry(
