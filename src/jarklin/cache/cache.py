@@ -135,8 +135,8 @@ class Cache:
                     generate_info_file()
                 info.append(InfoEntry(
                     path=str(source.relative_to(self.root)),
-                    name=source.stem,
-                    ext=source.suffix,
+                    name=source.stem if source.is_file() else source.name,
+                    ext=source.suffix if source.is_file() else "",
                     creation_time=get_creation_time(source),
                     modification_time=get_modification_time(source),
                     meta=json.loads(dest.joinpath("meta.json").read_bytes()),
