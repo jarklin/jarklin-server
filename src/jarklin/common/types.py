@@ -43,6 +43,7 @@ class GalleryMeta(_t.TypedDict):
 
 class GalleryImageMeta(_t.TypedDict):
     filename: str
+    ext: str
     width: int
     height: int
     filesize: int

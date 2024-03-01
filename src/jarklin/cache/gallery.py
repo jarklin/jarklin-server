@@ -99,6 +99,7 @@ class GalleryCacheGenerator(CacheGenerator):
         with Image.open(fp) as image:
             return GalleryImageMeta(
                 filename=fp.name,
+                ext=fp.suffix,
                 width=image.width,
                 height=image.height,
                 filesize=fp.stat().st_size,
