@@ -16,6 +16,11 @@ WEB_UI = p.join(p.dirname(__file__), 'web-ui')
 app = flask.Flask(__name__, static_url_path="/", static_folder=WEB_UI, template_folder=None)
 
 
+@app.get("/")
+def index():
+    return app.send_static_file("index.html")
+
+
 @app.get("/files/<path:resource>")
 @requires_authenticated
 def files(resource: str):
@@ -40,6 +45,14 @@ def files(resource: str):
             logging.error(f"optimization for {resource!r} failed", exc_info=error)
 
     return flask.send_file(fp, as_attachment=as_download)
+
+
+@app.get("/api/config")
+def get_config():
+    return dict(
+        requires_auth=bool(flask.current_app.config.get('USERPASS')),
+        allows_optimization=flask.current_app.config.get('JIT_OPTIMIZATION', False),
+    )
 
 
 @app.get("/auth/username")
@@ -71,8 +84,3 @@ def logout():
     if 'username' in flask.session:
         flask.session.pop('username')
     return "", HTTPStatus.NO_CONTENT
-
-
-@app.get("/")
-def index():
-    return app.send_static_file("index.html")
