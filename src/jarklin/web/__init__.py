@@ -44,7 +44,10 @@ def files(resource: str):
         except Exception as error:  # no-fail
             logging.error(f"optimization for {resource!r} failed", exc_info=error)
 
-    return flask.send_file(fp, as_attachment=as_download)
+    try:
+        return flask.send_file(fp, as_attachment=as_download)
+    except FileNotFoundError:
+        raise HTTPNotFound(resource)
 
 
 @app.get("/api/config")
