@@ -18,6 +18,7 @@ gallery/
 │  ├─ 2.webp
 ├─ meta.json
 ├─ gallery.type
+├─ is-cache
 """
 import re
 import shutil

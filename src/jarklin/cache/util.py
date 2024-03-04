@@ -45,6 +45,26 @@ def is_gallery(fp: PathSource, boundary: int = 5) -> bool:
     ]) > boundary
 
 
+def is_cache(fp: PathSource) -> bool:
+    fp = Path(fp)
+    return fp.joinpath("is-cache").is_file()
+
+
+def is_gallery_cache(fp: PathSource) -> bool:
+    fp = Path(fp)
+    return is_cache(fp) and fp.joinpath("gallery.type").is_file()
+
+
+def is_video_cache(fp: PathSource) -> bool:
+    fp = Path(fp)
+    return is_cache(fp) and fp.joinpath("video.type").is_file()
+
+
+def is_incomplete(dest: PathSource) -> bool:
+    dest = Path(dest)
+    return next(dest.glob("*.type"), None) is None
+
+
 def is_deprecated(source: PathSource, dest: PathSource) -> bool:
     source = Path(source)
     dest = Path(dest)
@@ -57,11 +77,6 @@ def is_deprecated(source: PathSource, dest: PathSource) -> bool:
     else:
         source_mtime = p.getmtime(source)
     return source_mtime > p.getmtime(dest)
-
-
-def is_incomplete(dest: PathSource) -> bool:
-    dest = Path(dest)
-    return next(dest.glob("*.type"), None) is None
 
 
 def get_creation_time(path: PathSource) -> float:

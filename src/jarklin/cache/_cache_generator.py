@@ -32,6 +32,8 @@ class CacheGenerator:
         self.dest.mkdir(parents=True)
 
         try:
+            logging.info(f"{self}.mark_cache()")
+            self.mark_cache()
             logging.info(f"{self}.generate_meta()")
             self.generate_meta()
             logging.info(f"{self}.generate_previews()")
@@ -47,6 +49,10 @@ class CacheGenerator:
         except KeyboardInterrupt:
             shutil.rmtree(self.dest, ignore_errors=True)
             raise
+
+    @t.final
+    def mark_cache(self):
+        self.dest.joinpath("is-cache").touch()
 
     @abstractmethod
     def generate_meta(self) -> None: ...

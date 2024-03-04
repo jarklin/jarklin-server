@@ -15,7 +15,7 @@ from ..common import dot_ignore, scheduling
 from ._cache_generator import CacheGenerator
 from .video import VideoCacheGenerator
 from .gallery import GalleryCacheGenerator
-from .util import is_video_file, is_gallery, is_deprecated, is_incomplete, get_creation_time, get_modification_time
+from .util import is_video_file, is_gallery, is_deprecated, is_incomplete, get_creation_time, get_modification_time, is_cache
 try:
     from better_exceptions import format_exception
 except ModuleNotFoundError:
@@ -93,9 +93,10 @@ class Cache:
             for dirname in dirnames:
                 dest = Path(root, dirname)
                 source = dest.relative_to(self.jarklin_cache)
-                if not dest.joinpath("meta.json").is_file():
+                if not is_cache(fp=dest):
                     continue
-                if not source.exists() or is_deprecated(source=source, dest=dest):
+                if not source.exists() or is_deprecated(source=source, dest=dest) or is_incomplete(dest=dest):
+                    logging.info(f"removing {str(source)!r} from cache")
                     shutil.rmtree(dest)
 
     def generate(self) -> None:

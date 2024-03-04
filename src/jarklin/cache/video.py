@@ -8,6 +8,7 @@ video.mp4/
 │  ├─ 2.webp
 ├─ meta.json
 ├─ video.type
+├─ is-cache
 """
 import logging
 import shutil
