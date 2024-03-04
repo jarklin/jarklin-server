@@ -37,9 +37,20 @@ def run_continuously(scheduler: schedule.Scheduler, interval: int = 1):
     cease_continuous_run = threading.Event()
 
     def runner():
+        fatally = 0
+
         while not cease_continuous_run.is_set():
             logging.debug("running pending jobs")
-            scheduler.run_pending()
+            try:
+                scheduler.run_pending()
+            except Exception as error:
+                logging.error(f"error while executing scheduled jobs. (count: {fatally})", exc_info=error)
+                fatally += 1
+                if fatally > 3:
+                    logging.critical(f"scheduled jobs failed to often. exiting", exc_info=error)
+                    raise error
+            else:
+                fatally = 0
             logging.debug("waiting till next job run")
             time.sleep(interval)
 
