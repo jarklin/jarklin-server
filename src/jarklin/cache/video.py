@@ -109,9 +109,10 @@ class VideoCacheGenerator(CacheGenerator):
         shutil.copyfile(preview_source, self.dest.joinpath("preview.webp"))
 
     def generate_animated_preview(self) -> None:
-        images = sorted(self.previews_cache.glob("*.png"), key=lambda f: int(f.stem))
+        filepaths = sorted(self.previews_cache.glob("*.png"), key=lambda f: int(f.stem))
         with ExitStack() as stack:
-            first, *frames = (stack.enter_context(Image.open(fp)) for fp in images)
+            images: t.List[Image.Image] = [stack.enter_context(Image.open(fp)) for fp in filepaths]
+            first, *frames = images
             first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=False,
                        append_images=frames, duration=round(1000 / self.scene_fps), loop=0, method=6, quality=80)
 

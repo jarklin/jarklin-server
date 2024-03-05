@@ -70,13 +70,20 @@ class GalleryCacheGenerator(CacheGenerator):
         shutil.copyfile(first_preview, self.dest.joinpath("preview.webp"))
 
     def generate_animated_preview(self) -> None:
-        images = sorted(self.previews_dir.glob("*.webp"), key=lambda f: int(f.stem))[:self.max_images]
-        if not images:
+        import statistics
+
+        filepaths = sorted(self.previews_dir.glob("*.webp"), key=lambda f: int(f.stem))[:self.max_images]
+        if not filepaths:
             raise FileExistsError("no previews found")
+
         with ExitStack() as stack:
-            first, *frames = (stack.enter_context(Image.open(fp)) for fp in images)
+            images: t.List[Image.Image] = [stack.enter_context(Image.open(fp)) for fp in filepaths]
+            avg_width = round(statistics.mean((img.width for img in images)))
+            avg_height = round(statistics.mean((img.height for img in images)))
+
+            first, *frames = images
             # this step is done to ensure all images have the same dimensions. otherwise the save will fail
-            frames = [stack.enter_context(frame.resize(first.size)) for frame in frames]
+            frames = [stack.enter_context(frame.resize((avg_width, avg_height))) for frame in frames]
             # minimize_size=True => warned as slow
             # method=6 => bit slower but better results
             first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=False,
