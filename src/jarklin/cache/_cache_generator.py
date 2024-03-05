@@ -1,6 +1,15 @@
 # -*- coding=utf-8 -*-
 r"""
 
+{gallery,video.mp4}/
+├─ preview.webp
+├─ animated.webp
+├─ previews/
+│  ├─ 1.webp
+│  ├─ 2.webp
+├─ meta.json
+├─ {gallery,video}.type
+├─ is-cache
 """
 import logging
 import shutil
@@ -24,11 +33,59 @@ class CacheGenerator:
     def __repr__(self):
         return f"<{type(self).__name__}: {self.source.relative_to(Path.cwd())!s}>"
 
+    @staticmethod
+    def remove(fp: PathSource):
+        fp = Path(fp)
+
+        files = [
+            fp/"meta.json",
+            fp/"preview.webp",
+            fp/"animated.webp",
+            next(fp.glob("*.type"), None),
+            fp/"is-cache",
+        ]
+        for f in files:
+            if f and f.is_file():
+                f.unlink()
+
+        previews = fp/"previews"
+        if previews.is_dir():
+            for f in previews.glob("*.webp"):
+                f.unlink()
+            if next(previews.iterdir(), None) is None:
+                previews.rmdir()
+
+        if next(fp.iterdir(), None) is None:
+            fp.rmdir()
+
+    @staticmethod
+    def is_incomplete(fp: PathSource) -> bool:
+        fp = Path(fp)
+
+        if not fp.joinpath("meta.json").is_file():
+            return True
+        if not fp.joinpath("preview.webp").is_file():
+            return True
+        if not fp.joinpath("animated.webp").is_file():
+            return True
+        if next(fp.glob("*.type"), None) is None:
+            return True
+        if not fp.joinpath("is-cache").is_file():
+            return True
+
+        previews = fp/"previews"
+        if not previews.is_dir():
+            return True
+        if next(previews.iterdir(), None) is None:
+            return True
+
+        return False
+
     @t.final
     def generate(self) -> None:
         logging.info(f"{self}.generate()")
         if self.dest.is_dir():
-            shutil.rmtree(self.dest, ignore_errors=True)
+            CacheGenerator.remove(fp=self.dest)
         self.dest.mkdir(parents=True)
 
         try:

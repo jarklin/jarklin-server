@@ -50,11 +50,6 @@ def is_video_cache(fp: PathSource) -> bool:
     return is_cache(fp) and fp.joinpath("video.type").is_file()
 
 
-def is_incomplete(dest: PathSource) -> bool:
-    dest = Path(dest)
-    return next(dest.glob("*.type"), None) is None
-
-
 def is_deprecated(source: PathSource, dest: PathSource) -> bool:
     source = Path(source)
     dest = Path(dest)
