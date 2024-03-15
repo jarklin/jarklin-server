@@ -30,9 +30,9 @@ def files(resource: str):
     root = p.abspath(os.getcwd())
     fp = p.abspath(p.join(root, resource))
     if fp in app.config['EXCLUDE']:
-        raise HTTPNotFound()
+        raise HTTPNotFound(resource)
     if p.commonpath([root, fp]) != root:
-        raise HTTPNotFound(f"{fp!s}")
+        raise HTTPNotFound(resource)
 
     if attempt_optimization and flask.current_app.config['JIT_OPTIMIZATION']:
         try:

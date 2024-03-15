@@ -108,17 +108,18 @@ class Cache:
                     CacheGenerator.remove(fp=dest)
 
     def generate(self) -> None:
+        # todo: skip incomplete and add available first
         logging.info("cache.generate()")
         info: t.List[InfoEntry] = []
         problems: t.List[ProblemEntry] = []
         generators: t.List[CacheGenerator] = self.find_generators()
 
-        def generate_info_file():
-            logging.info("generating info.json")
-            with open(self.root.joinpath('.jarklin/info.json'), 'w') as fp:
+        def generate_data_files():
+            logging.info("generating media.json")
+            with open(self.jarklin_path / 'media.json', 'w') as fp:
                 fp.write(json.dumps(info))
             logging.info("generating problems.json")
-            with open(self.root.joinpath('.jarklin/problems.json'), 'w') as fp:
+            with open(self.jarklin_path / 'problems.json', 'w') as fp:
                 fp.write(json.dumps(problems))
 
         for generator in generators:
@@ -144,7 +145,7 @@ class Cache:
                         if dest.is_dir():
                             shutil.rmtree(dest, ignore_errors=True)
                         continue
-                    generate_info_file()
+                    generate_data_files()
                 info.append(InfoEntry(
                     path=str(source.relative_to(self.root)),
                     name=source.stem if source.is_file() else source.name,
@@ -157,7 +158,7 @@ class Cache:
                 logging.error(f"Cache: {generator} failed", exc_info=error)
                 continue
 
-        generate_info_file()
+        generate_data_files()
 
     def find_generators(self) -> t.List[CacheGenerator]:
         logging.info("Collecting Generators")

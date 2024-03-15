@@ -126,7 +126,7 @@ function wizard_install() {
   fi
 
   if [ $WEB_UI = true ]; then
-    WEB_UI_ARCHIVE="./jarklin.tgz"
+    WEB_UI_ARCHIVE="./web-ui.tgz"
     WEB_UI_DIR="./jarklin/web/web-ui/"
     info "Downloading Web-UI..."
     wiz_download_web_ui "$WEB_UI_ARCHIVE"
