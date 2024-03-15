@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-THIS=$(dirname "$(realpath "$0")")
+THIS="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 
 PYTHON3="$THIS/.venv/bin/python3"
 
