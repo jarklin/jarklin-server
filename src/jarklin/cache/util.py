@@ -58,14 +58,12 @@ def is_deprecated(source: PathSource, dest: PathSource) -> bool:
     if not dest.exists():
         return True
     if source.is_dir():  # gallery
-        source_mtime = max(*(p.getmtime(fp) for fp in source.iterdir() if fp.is_file()), 0)
-        if not source_mtime:
-            source_mtime = p.getmtime(source)
+        times = [int(p.getctime(fp)) for fp in source.iterdir() if fp.is_file()]
+        source_mtime = max(times) if times else p.getmtime(source)
     else:
         source_mtime = p.getmtime(source)
-    dest_mtime = max(*(p.getmtime(fp) for fp in dest.iterdir() if fp.is_file()), 0)
-    if not dest_mtime:
-        dest_mtime = p.getmtime(dest)
+    times = [p.getmtime(fp) for fp in dest.iterdir() if fp.is_file()]
+    dest_mtime = max(times) if times else p.getmtime(dest)
     return source_mtime > dest_mtime
 
 
@@ -75,7 +73,8 @@ def get_creation_time(path: PathSource) -> float:
     if path.is_file():
         return int(p.getctime(path))
     elif path.is_dir():
-        return min(int(p.getctime(fp)) for fp in path.iterdir() if fp.is_file())
+        times = [int(p.getctime(fp)) for fp in path.iterdir() if fp.is_file()]
+        return min(times) if times else p.getctime(path)
     else:
         raise ValueError(f"can't get ctime for {str(path)!r}")
 
