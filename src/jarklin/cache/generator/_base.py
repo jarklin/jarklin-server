@@ -89,7 +89,7 @@ class CacheGenerator:
         logging.info(f"{self}.generate()")
         if self.dest.is_dir():
             CacheGenerator.remove(fp=self.dest)
-        self.dest.mkdir(parents=True)
+        self.dest.mkdir(parents=True, exist_ok=True)
 
         try:
             logging.info(f"{self}.mark_cache()")
