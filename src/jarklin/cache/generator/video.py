@@ -125,7 +125,8 @@ class VideoCacheGenerator(CacheGenerator):
     @cached_property
     def previews_cache(self) -> Path:
         path = self.dest.joinpath(".previews")
-        path.mkdir(parents=True, exist_ok=True)
+        shutil.rmtree(path, ignore_errors=True)
+        path.mkdir(parents=True)
         return path
 
     @staticmethod
