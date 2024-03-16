@@ -189,7 +189,8 @@ class VideoCacheGenerator(CacheGenerator):
             n_previews=len(self.chapters) or self.scenes_for_length(duration=self.stat_duration),
             video_streams=[VideoStreamMeta(
                 is_default=bool(stream['disposition']['default']),
-                duration=float(stream.get('duration', "NaN")),
+                # note: not the best to assume only one stream with one global duration
+                duration=float(stream.get('duration', self.stat_duration)),
                 width=stream['width'],
                 height=stream['height'],
                 avg_fps=int.__truediv__(*map(int, stream['avg_frame_rate'].split("/"))),
