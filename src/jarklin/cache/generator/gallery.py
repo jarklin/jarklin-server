@@ -59,11 +59,34 @@ class GalleryCacheGenerator(CacheGenerator):
             file.write(json.dumps(self.meta))
 
     def generate_previews(self) -> None:
+        animated_count = 0
+
         for i, info in enumerate(self.meta['images']):
             with Image.open(self.source.joinpath(info['filename'])) as image:
+
+                if animated_count < self.max_images:
+                    # note: quality=0 & method=0 during save. we don't care about the size of these temp-images
+                    if image.height > image.width * 3:
+                        width, height = image.size
+                        rough_ratio = 9 / 16  # portrait
+                        times = round((height * rough_ratio) / width)
+                        pheight = round(height / times)
+                        for j in range(times):
+                            animated_count += 1
+                            offset = j * pheight
+                            img = image.crop((0, offset, width, offset + pheight))
+                            img.thumbnail(self.max_dimensions)
+                            img.save(self.animated_cache / f"{animated_count}.webp", format="WEBP",
+                                     lossless=True, quality=0, method=0)
+                    else:
+                        animated_count += 1
+                        img = image.copy()
+                        img.thumbnail(self.max_dimensions)
+                        img.save(self.animated_cache / f"{animated_count}.webp", format="WEBP",
+                                 lossless=True, quality=0, method=0)
+
                 image.thumbnail(self.max_dimensions)
-                image.save(self.previews_dir.joinpath(f"{i + 1}.webp"), format='WEBP',
-                           method=6, quality=80)
+                image.save(self.previews_dir.joinpath(f"{i + 1}.webp"), format='WEBP', method=6, quality=80)
 
     def generate_image_preview(self) -> None:
         first_preview = self.previews_dir.joinpath("1.webp")
@@ -72,18 +95,18 @@ class GalleryCacheGenerator(CacheGenerator):
     def generate_animated_preview(self) -> None:
         import statistics
 
-        filepaths = sorted(self.previews_dir.glob("*.webp"), key=lambda f: int(f.stem))[:self.max_images]
+        filepaths = sorted(self.animated_cache.glob("*.webp"), key=lambda f: int(f.stem))[:self.max_images]
         if not filepaths:
-            raise FileExistsError("no previews found")
+            raise FileNotFoundError("no previews found")
 
         with ExitStack() as stack:
             images: t.List[Image.Image] = [stack.enter_context(Image.open(fp)) for fp in filepaths]
             avg_width = round(statistics.mean((img.width for img in images)))
             avg_height = round(statistics.mean((img.height for img in images)))
 
-            first, *frames = images
             # this step is done to ensure all images have the same dimensions. otherwise the save will fail
-            frames = [stack.enter_context(frame.resize((avg_width, avg_height))) for frame in frames]
+            images = [frame.resize((avg_width, avg_height)) for frame in images]
+            first, *frames = images
             # minimize_size=True => warned as slow
             # method=6 => bit slower but better results
             first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=False,
@@ -91,6 +114,16 @@ class GalleryCacheGenerator(CacheGenerator):
 
     def generate_type(self) -> None:
         self.dest.joinpath("gallery.type").touch()
+
+    def cleanup(self) -> None:
+        shutil.rmtree(self.animated_cache, ignore_errors=True)
+
+    @cached_property
+    def animated_cache(self):
+        path = self.dest.joinpath(".animated")
+        shutil.rmtree(path, ignore_errors=True)
+        path.mkdir(parents=True)
+        return path
 
     @cached_property
     def meta(self) -> GalleryMeta:
