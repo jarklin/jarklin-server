@@ -12,9 +12,7 @@ from functools import cached_property
 from configlib import ConfigInterface
 from ..common.types import InfoEntry, ProblemEntry
 from ..common import dot_ignore, scheduling
-from ._cache_generator import CacheGenerator
-from .video import VideoCacheGenerator
-from .gallery import GalleryCacheGenerator
+from .generator import CacheGenerator, GalleryCacheGenerator, VideoCacheGenerator
 from .util import is_video_file, is_gallery, is_deprecated, get_creation_time, get_modification_time, is_cache
 try:
     from better_exceptions import format_exception
@@ -142,8 +140,7 @@ class Cache:
                             description=str(error),
                             traceback='\n'.join(format_exception(type(error), error, error.__traceback__))
                         ))
-                        if dest.is_dir():
-                            shutil.rmtree(dest, ignore_errors=True)
+                        CacheGenerator.remove(fp=dest)
                         continue
                     generate_data_files()
                 info.append(InfoEntry(

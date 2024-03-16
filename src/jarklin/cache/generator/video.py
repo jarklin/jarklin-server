@@ -18,10 +18,10 @@ from contextlib import ExitStack
 from functools import cached_property
 import ffmpeg
 from PIL import Image
-from ..common.types import VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
-from ._ffprope_typing import FFProbeResult, FFProbeVideoStream, FFProbeAudioStream, FFProbeSubtitleStream, \
+from jarklin.common.types import VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
+from jarklin.cache.generator._ffprope_typing import FFProbeResult, FFProbeVideoStream, FFProbeAudioStream, FFProbeSubtitleStream, \
     FFProbeChapter
-from ._cache_generator import CacheGenerator
+from ._base import CacheGenerator
 
 
 class VideoCacheGenerator(CacheGenerator):
@@ -51,7 +51,7 @@ class VideoCacheGenerator(CacheGenerator):
 
     def generate_meta(self) -> None:
         import json
-        with open(self.dest / "meta.json", "w") as file:
+        with open(self.dest / "meta.json", 'w') as file:
             file.write(json.dumps(self.meta))
 
     def generate_previews(self) -> None:
@@ -178,18 +178,17 @@ class VideoCacheGenerator(CacheGenerator):
 
     @cached_property
     def meta(self) -> VideoMeta:
-        duration = float(self.ffprobe["format"]["duration"])
         return VideoMeta(
             type='video',
             filename=self.source.name,
-            duration=duration,
+            duration=self.stat_duration,
             width=self.main_video_stream['width'],
             height=self.main_video_stream['height'],
             filesize=self.source.stat().st_size,
-            n_previews=len(self.chapters) or self.scenes_for_length(duration=duration),
+            n_previews=len(self.chapters) or self.scenes_for_length(duration=self.stat_duration),
             video_streams=[VideoStreamMeta(
                 is_default=bool(stream['disposition']['default']),
-                duration=float(stream['duration']),
+                duration=float(stream.get('duration', "NaN")),
                 width=stream['width'],
                 height=stream['height'],
                 avg_fps=int.__truediv__(*map(int, stream['avg_frame_rate'].split("/"))),
@@ -222,7 +221,7 @@ class VideoCacheGenerator(CacheGenerator):
 
     @cached_property
     def stat_duration(self) -> float:
-        return float(self.main_video_stream['duration'])
+        return float(self.main_video_stream.get('duration', self.ffprobe['format']['duration']))
 
     @cached_property
     def stat_n_frames(self) -> int:

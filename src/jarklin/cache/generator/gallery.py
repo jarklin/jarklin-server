@@ -26,9 +26,9 @@ import typing as t
 from pathlib import Path
 from contextlib import ExitStack
 from functools import cached_property
-from ..common.types import GalleryMeta, GalleryImageMeta, PathSource
-from ._cache_generator import CacheGenerator
-from .util import is_image_file
+from jarklin.common.types import GalleryMeta, GalleryImageMeta, PathSource
+from ._base import CacheGenerator
+from jarklin.cache.util import is_image_file
 from PIL import Image
 
 

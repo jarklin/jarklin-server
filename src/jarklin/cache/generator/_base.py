@@ -18,7 +18,7 @@ import typing as t
 from pathlib import Path
 from abc import abstractmethod
 from configlib import ConfigInterface
-from ..common.types import PathSource
+from jarklin.common.types import PathSource
 
 
 class CacheGenerator:
@@ -36,6 +36,9 @@ class CacheGenerator:
     @staticmethod
     def remove(fp: PathSource):
         fp = Path(fp)
+
+        if not fp.is_dir():
+            return
 
         files = [
             fp/"meta.json",
