@@ -3,21 +3,10 @@ r"""
 
 """
 import io
-import mimetypes
 import os
 from zlib import adler32
 import flask
 from PIL import Image
-
-
-def optimize_file(fp: str):
-    mimetype, _ = mimetypes.guess_type(fp)
-    if not mimetype:
-        return None
-    if mimetype.startswith("image/"):
-        return optimize_image(fp)
-    if mimetype.startswith("video/"):
-        return optimize_video(fp)
 
 
 def optimize_image(fp: str):
@@ -43,7 +32,3 @@ def optimize_image(fp: str):
 
     return flask.send_file(buffer, "image/webp", as_attachment=False,
                            download_name="optimized.webp", conditional=False, etag=etag)
-
-
-def optimize_video(_fp: str):
-    raise NotImplementedError()
