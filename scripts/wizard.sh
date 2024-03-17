@@ -55,13 +55,13 @@ function wiz_ask_directory() {
 
   SELECTED=$(realpath "$SELECTED")
   while true; do
-    OPTIONS=("." "." ".." "..")
+    OPTIONS=("." "@select" ".." "..")
     for entry in "$SELECTED"/*/; do
       entry=$(basename "$entry")
       OPTIONS+=("$entry" "$entry")
     done
     CHOICE=$(
-      whiptail --title "$TITLE" --menu "$TEXT\n$SELECTED" 20 60 10 --notags --nocancel --ok-button "Open" \
+      whiptail --title "$TITLE" --menu "$TEXT\n$SELECTED" 20 60 10 --notags --ok-button "Open" \
       "${OPTIONS[@]}" \
       3>&2 2>&1 1>&3
     )
@@ -169,16 +169,31 @@ function wizard_create_config() {
   DEST=$(wiz_ask_directory --title "$TITLE" --text "Select where you want to create the config-file")
   FP="$DEST/.jarklin.yaml"
 
+  if [ -f "$FP" ]; then
+    if ! whiptail --title "$TITLE" --msgbox "A configuration file already exists. It will be overwritten." 20 60; then
+      return 0
+    fi
+  fi
+
   BASEURL=$(
-    whiptail --title "$TITLE - Server" --inputbox "Under which baseurl do you want to serve jarklin?" 20 60 "/" 3>&2 2>&1 1>&3
+    whiptail --title "$TITLE - Server" --inputbox "Under which baseurl do you want to serve jarklin?
+If jarklin is the only thing that's running on your server, then leave it as '/'.
+If you have multiple services then you could change it to something like '/jarklin'" 20 60 "/" 3>&2 2>&1 1>&3
   )
 
-  if whiptail --title "$TITLE - Server" --yesno "Bind to a Port or Unix-Domain-Socket (UDS)?" --yes-button "Port" --no-button "UDS" 20 60; then
+  if whiptail --title "$TITLE - Server" --yesno "Bind to a Port or Unix-Domain-Socket (UDS)?
+Port: eg. https://10.20.30.40:9898/
+UDS: eg. /tmp/jarklin.sock" --yes-button "Port" --no-button "UDS" 20 60; then
     HOST=$(
-      whiptail --title "$TITLE - Server" --inputbox "Host:" 20 60 "localhost" 3>&2 2>&1 1>&3
+      whiptail --title "$TITLE - Server" --inputbox "How should jarklin be available?
+Available only on this device? 'localhost'/'127.0.0.1'
+Available to other devices in this network? '0.0.0.0'
+Host:" 20 60 "localhost" 3>&2 2>&1 1>&3
     )
     PORT=$(
-      whiptail --title "$TITLE - Server" --inputbox "Port:" 20 60 "9898" 3>&2 2>&1 1>&3
+      whiptail --title "$TITLE - Server" --inputbox "Under which port should jarklin be available?
+(eg. https://10.20.30.40:9898/)
+Port:" 20 60 "9898" 3>&2 2>&1 1>&3
     )
   else
     UDS=$(
@@ -186,20 +201,30 @@ function wizard_create_config() {
     )
   fi
 
-  if whiptail --title "$TITLE - Server" --yesno "Whether to gzip the content. Reduces the response-size and thus loading time of text-based responses on cost of CPU-Time.
-note: Should be done by the Proxy-Server if possible. Otherwise, this is the option." 20 60; then
+  if whiptail --title "$TITLE - Server" --yesno "gzip content?
+This can reduce the response-size and thus loading time of text-based responses on cost of CPU-Time.
+Note: Should be done by the Proxy-Server if possible. Otherwise, this is the option." 20 60; then
     GZIP="yes"
   else
     GZIP="no"
   fi
 
-  if whiptail --title "$TITLE - Server" --yesno "Allow media optimization.
-Enabling this option allows for faster downloads as supported media is just-in-time optimized.
-Important: only use this option for a very small userbase as it can take up lots of system-resources." 20 60; then
-    OPTIMIZE=true
-  else
-    OPTIMIZE=false
-  fi
+  OPTIMIZATIONS=$(
+    whiptail --title "$TITLE - Server" --checklist "Allow media optimization?
+Enabling this allows for faster downloads as supported media is just-in-time optimized.
+Important: only use this option for slow internet or a very small userbase as it can take up lots of system-resources." 20 60 6 --notags --separate-output \
+    "image" "Image optimization" OFF \
+    "video" "Video optimization (buggy)" OFF \
+    3>&2 2>&1 1>&3
+  )
+  OPTIMIZE_IMAGES=false
+  OPTIMIZE_VIDEOS=false
+  for OPTIMIZATION in $OPTIMIZATIONS; do
+    case $OPTIMIZATION in
+    "image") OPTIMIZE_IMAGES=true ;;
+    "video-ui") OPTIMIZE_VIDEOS=true ;;
+    esac
+  done
 
   if whiptail --title "$TITLE - Auth" --yesno "Do you want to require authentication?" 20 60; then
     USERNAME=$(
@@ -227,11 +252,12 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
     3>&2 2>&1 1>&3
   )
 
-  if whiptail --title "$TITLE - Logging" --yesno "Should the logs be saved to a file?" 20 60; then
-    LOG2FILE=true
-  else
-    LOG2FILE=false
-  fi
+  LOG2FILE=false  # file logging is buggy
+#  if whiptail --title "$TITLE - Logging" --yesno "Should the logs be saved to a file?" 20 60; then
+#    LOG2FILE=true
+#  else
+#    LOG2FILE=false
+#  fi
 
   {
     echo "web:"
@@ -245,15 +271,27 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
       echo "    host: \"$HOST\""
       echo "    port: $PORT"
     fi
-    echo "#    threads: 4"
-    echo "  gzip: $GZIP"
-    if [ $OPTIMIZE = true ]; then
-      echo "  optimize: yes"
-    fi
+    echo "    threads: 8  # browsers send ~6 requests at once"
     if [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
       echo "  auth:"
       echo "    username: \"$USERNAME\""
       echo "    password: \"$PASSWORD\""
+      echo "#    userpass: \".jarklin/userpass.txt\""
+    fi
+    echo "  session:"
+    echo "    secret_key: \"$(python3 -c 'import secrets; print(secrets.token_hex(32))')\""
+    echo "    permanent: yes"
+    echo "#    lifetime: 604800  # 1w"
+    echo "    refresh_each_request: yes"
+    echo "  gzip: $GZIP"
+    if [ $OPTIMIZE_IMAGES = true ] || [ $OPTIMIZE_VIDEOS = true ]; then
+      echo "  optimize:"
+      if [ $OPTIMIZE_IMAGES = true ]; then
+        echo "    image: yes"
+      fi
+      if [ $OPTIMIZE_VIDEOS = true ]; then
+        echo "    video: yes"
+      fi
     fi
     echo "cache:"
     echo "  ignore:"
@@ -264,6 +302,7 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
       echo "#    - \"/hidden\""
     fi
     echo "logging:"
+    echo "  console: yes"
     echo "  level: $LOGGINGLEVEL"
     if [ $LOG2FILE = true ]; then
       echo "  file:"
