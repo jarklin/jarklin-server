@@ -54,7 +54,7 @@ def files(resource: str):
 def get_config():
     return dict(
         requires_auth=bool(flask.current_app.config.get('USERPASS')),
-        allows_optimization=flask.current_app.config.get('JIT_OPTIMIZATION', False),
+        allows_optimization=True in flask.current_app.config.get('JIT_OPTIMIZATION', {}).values(),
     )
 
 

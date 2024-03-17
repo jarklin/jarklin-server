@@ -5,9 +5,10 @@ r"""
 
 
 def run() -> None:
+    import logging
+    import secrets
     import os.path as p
     import flask
-    import secrets
     from werkzeug.middleware.dispatcher import DispatcherMiddleware
     from werkzeug.middleware.proxy_fix import ProxyFix
     from .._get_config import get_config
@@ -22,6 +23,7 @@ def run() -> None:
         raise ValueError("web.baseurl must start with /")
     if baseurl != "/":
         from werkzeug.wrappers import Response
+        logging.debug(f"serving under {baseurl!r}")
         app.wsgi_app = DispatcherMiddleware(
             Response('Not Found', status=404),
             {baseurl: app.wsgi_app},
@@ -53,10 +55,22 @@ def run() -> None:
     app.config['SESSION_REFRESH_EACH_REQUEST'] = \
         config.getbool('web', 'session', 'refresh_each_request', fallback=False)
 
-    app.config['JIT_OPTIMIZATION'] = config.getbool('web', 'optimize', fallback=False)
+    if config.gettype('web', 'optimize') is dict:
+        app.config['JIT_OPTIMIZATION'] = {
+            key: config.getbool('web', 'optimize', key)
+            for key in config.get('web', 'optimize').keys()
+        }
+        logging.debug(f"jit-optimization: {app.config['JIT_OPTIMIZATION']}")
+    elif config.getbool('web', 'optimize', fallback=False):
+        import warnings
+        warnings.warn("'web.optimize: {yes,no}' is soon deprecated. use 'web.optimize.*'", PendingDeprecationWarning)
+        logging.warning("'web.optimize: {yes,no}' is soon deprecated. use 'web.optimize.*'")
+        app.config['JIT_OPTIMIZATION'] = dict(image=True, video=True)
+        logging.debug(f"jit-optimization: {app.config['JIT_OPTIMIZATION']}")
 
     if config.getbool('web', 'gzip', fallback=True):
         from flask_compress import Compress  # no need to load unless required
+        logging.debug("enabling gzip compression")
         Compress(app)
 
     # pip install flask-kaccel for nginx
@@ -64,6 +78,7 @@ def run() -> None:
 
     if config.has('web', 'proxy_fix'):
         proxy_fix = config.getinterface('web', 'proxy_fix')
+        logging.debug(f"enabling proxy fix: {proxy_fix}")
         app.wsgi_app = ProxyFix(
             app=app,
             x_for=proxy_fix.getint('x_forwarded_for', fallback=1),
@@ -74,6 +89,7 @@ def run() -> None:
         )
 
     if config.getbool('web', 'debug', fallback=False):
+        logging.debug("using flasks simple-serve debug server")
         app.run(
             debug=True,
             # host=config.getstr('web', 'host', fallback=None),
@@ -82,6 +98,7 @@ def run() -> None:
         )
     else:
         import waitress
+        logging.debug("using waitress production server")
         waitress.serve(
             app=app,
             ident="jarklin",
