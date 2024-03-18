@@ -65,7 +65,7 @@ class VideoCacheGenerator(CacheGenerator):
             ]
         else:
             logging.debug(f"{self}: no chapters. fallback to evenly spread scenes")
-            number_of_scenes = self.scenes_for_length(duration=self.stat_duration)
+            number_of_scenes = self.scenes_for_duration(duration=self.stat_duration)
             every_n_seconds = self.stat_duration / number_of_scenes
             main_frames = list(range(
                 round(self.stat_fps),  # from start
@@ -130,24 +130,24 @@ class VideoCacheGenerator(CacheGenerator):
         return path
 
     @staticmethod
-    def scenes_for_length(duration: float) -> int:
-        lengths_list: t.List[int] = [
-            7200,  # 2h
-            4800,  # 1h30m
-            3600,  # 1h
-            1800,  # 30m
-            600,  # 10m
-            300,  # 5m
-            60,  # 1m
-            30,  # 30s
-            10,  # 10s
-            0,  # default
-        ]
+    def scenes_for_duration(duration: float) -> int:
+        boundary2scenes: t.Dict[int, int] = {
+            9800: 36,  # 3h
+            7200: 24,  # 2h
+            4800: 18,  # 1h30m
+            3600: 12,  # 1h
+            2700: 9,  # 45m
+            1800: 6,  # 30m
+            600: 5,  # 10m
+            300: 4,  # 5m
+            180: 3,  # 3m
+            60: 2,  # 1m
+        }
 
-        for i, boundary in enumerate(lengths_list):
-            if duration > boundary:
-                return len(lengths_list) - i
-        return 1  # just to be sure
+        for boundary, scenes in boundary2scenes.items():
+            if duration >= boundary:
+                return scenes
+        return 1
 
     @cached_property
     def ffprobe(self) -> FFProbeResult:
@@ -186,7 +186,7 @@ class VideoCacheGenerator(CacheGenerator):
             width=self.main_video_stream['width'],
             height=self.main_video_stream['height'],
             filesize=self.source.stat().st_size,
-            n_previews=len(self.chapters) or self.scenes_for_length(duration=self.stat_duration),
+            n_previews=len(self.chapters) or self.scenes_for_duration(duration=self.stat_duration),
             video_streams=[VideoStreamMeta(
                 is_default=bool(stream['disposition']['default']),
                 # note: not the best to assume only one stream with one global duration
