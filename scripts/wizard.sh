@@ -184,12 +184,13 @@ If you have multiple services then you could change it to something like '/jarkl
   if whiptail --title "$TITLE - Server" --yesno "Bind to a Port or Unix-Domain-Socket (UDS)?
 Port: eg. https://10.20.30.40:9898/
 UDS: eg. /tmp/jarklin.sock" --yes-button "Port" --no-button "UDS" 20 60; then
-    HOST=$(
-      whiptail --title "$TITLE - Server" --inputbox "How should jarklin be available?
-Available only on this device? 'localhost'/'127.0.0.1'
-Available to other devices in this network? '0.0.0.0'
-Host:" 20 60 "localhost" 3>&2 2>&1 1>&3
-    )
+    if whiptail --title "$TITLE - Server" --yesno "Should jarklin be publicly available?
+Public: every device can access jarklin.
+Private: Only programs on this device can access jarklin." --yes-button "Public" --no-button "Private" 20 60; then
+      HOST="*"  # * is waitress wildcard
+    else
+      HOST="localhost"
+    fi
     PORT=$(
       whiptail --title "$TITLE - Server" --inputbox "Under which port should jarklin be available?
 (eg. https://10.20.30.40:9898/)
@@ -270,6 +271,8 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
     else
       echo "    host: \"$HOST\""
       echo "    port: $PORT"
+      echo "    ipv4: yes"
+      echo "    ipv6: yes"
     fi
     echo "    threads: 8  # browsers send ~6 requests at once"
     if [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
