@@ -23,7 +23,9 @@ def optimize_image(fp: str):
         image.thumbnail(boundary, resample=Image.Resampling.BICUBIC)  # resize but keep aspect
 
         buffer = io.BytesIO()
-        image.save(buffer, format='WEBP')  # WebP should be better than JPEG or PNG
+        # WebP should be better than JPEG or PNG
+        image.save(buffer, format='WEBP',
+                   lossless=False, quality=75, method=3, exact=False)
         buffer.seek(0)
 
     stat = os.stat(fp)
