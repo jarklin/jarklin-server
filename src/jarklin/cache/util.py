@@ -70,20 +70,16 @@ def is_deprecated(source: PathSource, dest: PathSource) -> bool:
 def get_creation_time(path: PathSource) -> float:
     # fixme: ctime != creation-time on unix
     path = Path(path)
-    if path.is_file():
-        return int(p.getctime(path))
-    elif path.is_dir():
+    if path.is_dir():
         times = [int(p.getctime(fp)) for fp in path.iterdir() if fp.is_file()]
         return min(times) if times else p.getctime(path)
     else:
-        raise ValueError(f"can't get ctime for {str(path)!r}")
+        return int(p.getctime(path))
 
 
 def get_modification_time(path: PathSource) -> float:
     path = Path(path)
-    if path.is_file():
-        return int(p.getmtime(path))
-    elif path.is_dir():
+    if path.is_dir():
         times = [int(p.getmtime(fp)) for fp in path.iterdir() if fp.is_file()]
         if not times:  # no files in directory
             return p.getmtime(path)
@@ -92,4 +88,4 @@ def get_modification_time(path: PathSource) -> float:
         # assume that it took at least one hour for the gallery to be created (e.g. download-time)
         return maximum if maximum > (minimum + 3600) else minimum
     else:
-        raise ValueError(f"can't get mtime for {str(path)!r}")
+        return int(p.getmtime(path))
