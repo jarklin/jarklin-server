@@ -22,11 +22,6 @@ def optimize_video(fp: str):
             # "-acodec", "libmp3lame",  # audio-codec
             "-scodec", "copy",  # copy subtitles
             "-f", "mpeg",
-            # not working for pipe:stdout
-            # "-f", "libx265",
-            # "-preset", "ultrafast",  # only with libx265 (ultrafast | superfast | veryfast | faster)
-            # "-f", "libvpx-vp9",
-            # "-deadline", "realtime",  # only with libvpx-vp9
             "pipe:stdout",
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=-1)
         time.sleep(1)  # wait for startup and something in the buffer
@@ -41,7 +36,8 @@ def optimize_video(fp: str):
             raise error
         else:
             if process.returncode > 0:
-                stderr = process.stderr.read()
+                stderr = process.stderr.read().decode()
                 logging.error(f"ffmpeg failed for unknown reason:\n{stderr}")
+                # raise subprocess.CalledProcessError(process.returncode, process.args)
 
     return Response(stream_with_context(generator()), mimetype="video/mpeg", direct_passthrough=True)
