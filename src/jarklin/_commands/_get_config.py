@@ -4,7 +4,7 @@ r"""
 """
 import typing as t
 from functools import cache
-import configlib.finder
+import configlib
 from ._logging import configure_logging
 from ._process_config import configure_process
 
@@ -22,7 +22,7 @@ def get_config(return_fp: bool = False):
             ".jarklin.ext",
             ".jarklin/config.ext",
             places=[
-                configlib.finder.places.cwd(),
+                configlib.places.cwd(),
             ]
         )
     except configlib.ConfigNotFoundError:
