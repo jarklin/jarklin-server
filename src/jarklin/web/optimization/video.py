@@ -2,14 +2,19 @@
 r"""
 
 """
+import os
 import time
 import logging
 import subprocess
 
-from flask import stream_with_context, Response
+import flask
 
 
 def optimize_video(fp: str):
+    filesize = os.path.getsize(fp)
+    if filesize < flask.current_app.config.get('VIDEO_OPTIMIZATION_MINIMUM_SIZE', 1024 * 1024 * 50):
+        return None
+
     def generator():
         process = subprocess.Popen([
             "ffmpeg", "-hide_banner", "-loglevel", "error",
@@ -40,4 +45,4 @@ def optimize_video(fp: str):
                 logging.error(f"ffmpeg failed for unknown reason:\n{stderr}")
                 # raise subprocess.CalledProcessError(process.returncode, process.args)
 
-    return Response(stream_with_context(generator()), mimetype="video/mpeg", direct_passthrough=True)
+    return flask.Response(flask.stream_with_context(generator()), mimetype="video/mpeg", direct_passthrough=True)

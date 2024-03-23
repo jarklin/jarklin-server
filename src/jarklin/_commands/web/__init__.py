@@ -71,6 +71,8 @@ def run() -> None:
     # note: not documented. allows JARKLIN_WEB__IMAGE_OPTIMIZATION_MINIMUM_SIZE=...
     app.config['IMAGE_OPTIMIZATION_MINIMUM_SIZE'] = \
         config.getint('web', 'image_optimization_minimum_size', fallback=1024*1024)
+    app.config['VIDEO_OPTIMIZATION_MINIMUM_SIZE'] = \
+        config.getint('web', 'video_optimization_minimum_size', fallback=1024 * 1024 * 50)
 
     if config.getbool('web', 'gzip', fallback=True):
         from flask_compress import Compress  # no need to load unless required
