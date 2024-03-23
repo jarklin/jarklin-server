@@ -7,7 +7,7 @@ from pathlib import Path
 from configlib import ConfigInterface
 
 
-SHORT_LOGGING_FORMAT = "{asctime} | {levelname:.3} | {name} | {message}"
+SHORT_LOGGING_FORMAT = "{asctime} | {levelname:.3} | {name:<30} | {message}"
 LONG_LOGGING_FORMAT = "{asctime} | {levelname:.3} | {name} | {module} | {funcName} | {lineno} | {message}"
 DEFAULT_DATEFORMAT = "%Y-%m-%d %H:%M:%S"
 

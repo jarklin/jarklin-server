@@ -22,6 +22,7 @@ gallery/
 """
 import re
 import shutil
+import logging
 import typing as t
 from pathlib import Path
 from contextlib import ExitStack
@@ -30,6 +31,9 @@ from jarklin.common.types import GalleryMeta, GalleryImageMeta, PathSource
 from ._base import CacheGenerator
 from jarklin.cache.util import is_image_file
 from PIL import Image
+
+
+logger = logging.getLogger(__name__)
 
 
 class GalleryCacheGenerator(CacheGenerator):
@@ -62,16 +66,20 @@ class GalleryCacheGenerator(CacheGenerator):
         animated_count = 0
 
         for i, info in enumerate(self.meta['images']):
-            with Image.open(self.source.joinpath(info['filename'])) as image:
+            fp = self.source.joinpath(info['filename'])
+            with Image.open(fp) as image:
 
                 if animated_count < self.max_images:
                     # note: quality=0 & method=0 during save. we don't care about the size of these temp-images
                     if image.height > image.width * 3:
+                        logger.debug(f"{self}: {fp.name} - image height is too much."
+                                     f" splitting into multiple smaller for animated preview")
                         width, height = image.size
                         rough_ratio = 9 / 16  # portrait
                         times = round((height * rough_ratio) / width)
                         pheight = round(height / times)
                         for j in range(times):
+                            logger.debug(f"{self}: {fp.name}#{j} - resizing for animated preview")
                             animated_count += 1
                             offset = j * pheight
                             img = image.crop((0, offset, width, offset + pheight))
@@ -79,6 +87,7 @@ class GalleryCacheGenerator(CacheGenerator):
                             img.save(self.animated_cache / f"{animated_count}.webp", format="WEBP",
                                      lossless=True, quality=0, method=0)
                     else:
+                        logger.debug(f"{self}: {fp.name} - resizing for animated preview")
                         animated_count += 1
                         img = image.copy()
                         img.thumbnail(self.max_dimensions)
@@ -103,13 +112,15 @@ class GalleryCacheGenerator(CacheGenerator):
             images: t.List[Image.Image] = [stack.enter_context(Image.open(fp)) for fp in filepaths]
             avg_width = round(statistics.mean((img.width for img in images)))
             avg_height = round(statistics.mean((img.height for img in images)))
+            logging.debug(f"{self}: animated size calculated to {avg_width}x{avg_height}")
 
             # this step is done to ensure all images have the same dimensions. otherwise the save will fail
+            logging.debug(f"{self}: resizing frames to fit animated preview")
             images = [frame.resize((avg_width, avg_height)) for frame in images]
             first, *frames = images
             # minimize_size=True => warned as slow
             # method=6 => bit slower but better results
-            first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=False,
+            first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=True,
                        append_images=frames, duration=round(self.frame_time * 1000), loop=0, method=6, quality=80)
 
     def generate_type(self) -> None:
@@ -149,10 +160,12 @@ class GalleryCacheGenerator(CacheGenerator):
 
     @staticmethod
     def get_relevant_files_for_source(source: PathSource) -> t.List[PathSource]:
-        all_files = [fp for fp in source.iterdir() if fp.is_file()]
         pattern = re.compile(r'(?P<id>\d+)$')  # prefer last digits
         fallback_pattern = re.compile(r'(?P<id>\d+)')  # but accept any if possible
+
+        all_files = [fp for fp in source.iterdir() if fp.is_file()]
         possible_files: t.List[t.Tuple[Path, int]] = []
+
         for fp in all_files:
             if not is_image_file(fp):
                 continue
@@ -162,6 +175,8 @@ class GalleryCacheGenerator(CacheGenerator):
             if match is None:
                 continue
             possible_files.append((fp, int(match.group('id'))))
+
         if not possible_files:
             raise FileNotFoundError('No image files found')
+
         return [fp for fp, _ in sorted(possible_files, key=lambda p: p[1])]

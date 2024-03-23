@@ -23,6 +23,9 @@ except ModuleNotFoundError:
 __all__ = ['Cache']
 
 
+logger = logging.getLogger(__name__)
+
+
 class Cache:
     def __init__(self, config: ConfigInterface) -> None:
         self._shutdown_event = None
@@ -38,18 +41,22 @@ class Cache:
 
     @cached_property
     def root(self) -> Path:
-        return Path.cwd().absolute()
+        directory = Path.cwd().absolute()
+        logger.info(f"Cache - root directory: {directory!s}")
+        return directory
 
     @cached_property
     def jarklin_path(self) -> Path:
         directory = self.root.joinpath('.jarklin')
         directory.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Cache - jarklin directory: {directory!s}")
         return directory
 
     @cached_property
     def jarklin_cache(self) -> Path:
         directory = self.jarklin_path.joinpath('cache')
         directory.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Cache - jarklin cache directory: {directory!s}")
         return directory
 
     # todo: replace with file-system-monitoring
@@ -65,7 +72,7 @@ class Cache:
             while thread.is_alive():
                 time.sleep(5)  # tiny bit larger for less resources
         except (KeyboardInterrupt, InterruptedError):
-            logging.info("shutdown signal received. graceful shutdown")
+            logger.info("shutdown signal received. graceful shutdown")
             # attempt a graceful shutdown
             shutdown_event.set()
             while thread.is_alive():
@@ -86,7 +93,7 @@ class Cache:
         self.generate()
 
     def invalidate(self) -> None:
-        logging.info("cache.invalidate()")
+        logger.info("cache.invalidate()")
         for root, dirnames, files in os.walk(self.jarklin_cache):
             if not dirnames and not files:
                 os.rmdir(root)
@@ -102,38 +109,38 @@ class Cache:
                     or is_deprecated(source=source, dest=dest)
                     or CacheGenerator.is_incomplete(fp=dest)
                 ):
-                    logging.info(f"removing {str(source)!r} from cache")
+                    logger.info(f"removing {str(source)!r} from cache")
                     CacheGenerator.remove(fp=dest)
 
     def generate(self) -> None:
         # todo: skip incomplete and add available first
-        logging.info("cache.generate()")
+        logger.info("cache.generate()")
         info: t.List[InfoEntry] = []
         problems: t.List[ProblemEntry] = []
         generators: t.List[CacheGenerator] = self.find_generators()
 
         def generate_data_files():
-            logging.info("generating media.json")
+            logger.info("Cache - generating media.json")
             with open(self.jarklin_path / 'media.json', 'w') as fp:
                 fp.write(json.dumps(info))
-            logging.info("generating problems.json")
+            logger.info("Cache - generating problems.json")
             with open(self.jarklin_path / 'problems.json', 'w') as fp:
                 fp.write(json.dumps(problems))
 
         for generator in generators:
             source = generator.source
             dest = generator.dest
-            logging.debug(f"Cache: adding {generator}")
+            logger.debug(f"Cache - adding {generator}")
             try:
                 if (
                     is_deprecated(source=source, dest=dest)
                     or CacheGenerator.is_incomplete(fp=dest)
                 ):
-                    logging.info(f"Cache: generating {generator}")
+                    logger.info(f"Cache - generating {generator}")
                     try:
                         generator.generate()
                     except Exception as error:
-                        logging.error(f"Cache: generation failed ({generator})", exc_info=error)
+                        logger.error(f"Cache: generation failed ({generator})", exc_info=error)
                         problems.append(ProblemEntry(
                             file=str(source.relative_to(self.root)),
                             type=type(error).__name__,
@@ -143,6 +150,7 @@ class Cache:
                         CacheGenerator.remove(fp=dest)
                         continue
                     generate_data_files()
+                logger.debug(f"Cache - adding info for {source!s}")
                 info.append(InfoEntry(
                     path=str(source.relative_to(self.root)),
                     name=source.stem if source.is_file() else source.name,
@@ -152,13 +160,13 @@ class Cache:
                     meta=json.loads(dest.joinpath("meta.json").read_bytes()),
                 ))
             except FileNotFoundError as error:
-                logging.error(f"Cache: {generator} failed", exc_info=error)
+                logger.error(f"Cache - {generator} failed", exc_info=error)
                 continue
 
         generate_data_files()
 
     def find_generators(self) -> t.List[CacheGenerator]:
-        logging.info("Collecting Generators")
+        logger.info("Collecting Generators")
         generators: t.List[CacheGenerator] = []
 
         for root, dirnames, filenames in os.walk(self.root):
@@ -168,10 +176,12 @@ class Cache:
                 dest = self.jarklin_cache.joinpath(source.relative_to(self.root))
 
                 if self.ignorer.ignored(source):
+                    logger.debug(f"Cache - ignoring {source!s}")
                     dirnames.remove(dirname)
                     continue
 
                 if is_gallery(source):
+                    logger.debug(f"Cache - found gallery {source!s}")
                     generators.append(GalleryCacheGenerator(source=source, dest=dest, config=self._config))
 
             # videos
@@ -180,10 +190,12 @@ class Cache:
                 dest = self.jarklin_cache.joinpath(source.relative_to(self.root))
 
                 if self.ignorer.ignored(source):
+                    logger.debug(f"Cache - ignoring {source!s}")
                     filenames.remove(filename)
                     continue
 
                 if is_video_file(source):
+                    logger.debug(f"Cache - found video {source!s}")
                     generators.append(VideoCacheGenerator(source=source, dest=dest, config=self._config))
 
         return sorted(generators, key=lambda g: str(g.source).lower())

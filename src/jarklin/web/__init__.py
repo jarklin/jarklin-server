@@ -12,6 +12,7 @@ from .utility import requires_authenticated, validate_user, to_bool
 from . import optimization
 
 
+logger = logging.getLogger(__name__)
 WEB_UI = p.join(p.dirname(__file__), 'web-ui')
 app = flask.Flask(__name__, static_url_path="/", static_folder=WEB_UI, template_folder=None)
 
@@ -30,8 +31,10 @@ def files(resource: str):
     root = p.abspath(os.getcwd())
     fp = p.abspath(p.join(root, resource))
     if fp in app.config['EXCLUDE']:
+        logger.warning(f"attempt to access excluded file ({resource})")
         raise HTTPNotFound(resource)
     if p.commonpath([root, fp]) != root:
+        logger.warning(f"attempt to access files outside root directory ({resource})")
         raise HTTPNotFound(resource)
 
     if attempt_optimization and flask.current_app.config['JIT_OPTIMIZATION']:
@@ -42,7 +45,7 @@ def files(resource: str):
         except NotImplementedError:  # this is fine
             pass
         except Exception as error:  # no-fail
-            logging.error(f"optimization for {resource!r} failed", exc_info=error)
+            logger.error(f"optimization for {resource!r} failed", exc_info=error)
 
     try:
         return flask.send_file(fp, as_attachment=as_download)
@@ -77,7 +80,9 @@ def login():
         raise HTTPBadRequest("username or password missing in authorization")
 
     if not validate_user(username=username, password=password):
+        logger.warning(f"failed login attempt for username {username!r}")
         raise HTTPUnauthorized("bad credentials provided")
+    logger.debug(f"New login from {username!r}")
     flask.session['username'] = username
     return "", HTTPStatus.NO_CONTENT
 
