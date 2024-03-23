@@ -68,6 +68,10 @@ def run() -> None:
         app.config['JIT_OPTIMIZATION'] = dict(image=True, video=True)
         logging.debug(f"jit-optimization: {app.config['JIT_OPTIMIZATION']}")
 
+    # note: not documented. allows JARKLIN_WEB__IMAGE_OPTIMIZATION_MINIMUM_SIZE=...
+    app.config['IMAGE_OPTIMIZATION_MINIMUM_SIZE'] = \
+        config.getint('web', 'image_optimization_minimum_size', fallback=1024*1024)
+
     if config.getbool('web', 'gzip', fallback=True):
         from flask_compress import Compress  # no need to load unless required
         logging.debug("enabling gzip compression")

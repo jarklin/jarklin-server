@@ -10,6 +10,10 @@ from PIL import Image
 
 
 def optimize_image(fp: str):
+    filesize = os.path.getsize(fp)
+    if filesize < flask.current_app.config.get('IMAGE_OPTIMIZATION_MINIMUM_SIZE', 1024 * 1024):
+        return None
+
     with Image.open(fp) as image:
         # we don't support animated images
         if getattr(image, 'is_animated', False):
