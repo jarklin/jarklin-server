@@ -13,6 +13,7 @@ waitress = "*"
 schedule = "*"
 wcmatch = "*"
 werkzeug = "*"
+pystatx = { version = "*", markers="sys_platform != 'win32'" }
 
 [dev-packages]
 better-exceptions = "*"
