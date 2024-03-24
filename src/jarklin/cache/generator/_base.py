@@ -80,7 +80,7 @@ class CacheGenerator:
 
     @staticmethod
     def is_incomplete(fp: PathSource) -> bool:
-        logger.info(f"Checking if {fp!s} is incomplete")
+        logger.debug(f"Checking if {fp!s} is incomplete")
         fp = Path(fp)
 
         if not fp.joinpath("meta.json").is_file():
