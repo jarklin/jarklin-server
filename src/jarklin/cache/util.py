@@ -75,9 +75,12 @@ def _get_creation_time(fp: PathSource) -> float:
     try:
         if statx is None:
             raise RuntimeError()
-        return statx.statx(str(fp)).btime
+        btime = statx.statx(str(fp)).btime
+        if btime is not None:
+            return btime
     except RuntimeError:
-        return path.stat().st_ctime
+        pass
+    return path.stat().st_ctime
 
 
 def get_creation_time(path: PathSource) -> float:
