@@ -96,7 +96,14 @@ function wiz_download_web_ui() {
     wget "https://github.com/jarklin/jarklin-web/releases/download/latest/web-ui.tgz" -O "$1"
 }
 
+
 function wizard_install() {
+  if [ ! -w . ]; then
+      whiptail --title "Jarklin-Wizard - Install" --msgbox "You don't have permissions to install Jarklin here.
+$(pwd)" 20 60
+    return 0
+  fi
+
   FEATURES=$(
     whiptail --title "Jarklin-Wizard - Install" --checklist "Which features do you want to install?" 20 60 10 --notags --separate-output \
     "jarklin" "Jarklin server/backend" ON \
@@ -168,6 +175,9 @@ function wizard_update() {
 
 function check_can_uninstall() {
   cd "$ROOT/"
+  if [ ! -w . ]; then
+    return 1
+  fi
   if check_is_jarklin; then
     return 0
   fi
