@@ -12,7 +12,13 @@ if ! command -v pip3 >/dev/null; then
 fi
 
 
-ROOT="$(realpath "$(dirname "$(realpath "$0")")/")"
+#if [ ${#BASH_SOURCE[@]} -eq 0 ]; then
+#  echo "Interactive with curl"
+#else
+#  echo "local with bash"
+#fi
+ROOT="$(dirname "$(realpath "${BASH_SOURCE[0]:-$0}")")"
+CWD="$(realpath "$(pwd)")"
 
 
 function success() {
@@ -71,6 +77,14 @@ function wiz_ask_directory() {
     SELECTED=$(realpath "$SELECTED/$CHOICE")
   done
   echo "$SELECTED"
+}
+
+
+function check_is_jarklin() {
+  if [ ! -f "./jarklin" ] || [ "$("./jarklin" --verify-jarklin)" != "jarklin" ]; then
+    return 1
+  fi
+  return 0
 }
 
 
@@ -141,27 +155,42 @@ function wizard_install() {
     python3 -m pip install -U better-exceptions -t "jarklin/_deps/" --disable-pip-version-check
   fi
 
-  whiptail --title "Jarklin-Wizard - Install" --msgbox "Jarklin was successfully installed" 20 60
+  whiptail --title "Jarklin-Wizard - Install" --msgbox "Jarklin was successfully installed.
+$(realpath "./jarklin")" 20 60
 }
 
 function wizard_update() {
   cd "$ROOT"
   whiptail --title "Jarklin-Wizard - Update" --msgbox "Update is currently not available.\nReinstalling should do the job." 20 60
+  return 1
+}
+
+
+function check_can_uninstall() {
+  cd "$ROOT/"
+  if check_is_jarklin; then
+    return 0
+  fi
+  return 1
 }
 
 function wizard_uninstall() {
-#  whiptail --title "Jarklin-Wizard - Uninstall" --msgbox "Uninstall" 20 60
-  cd "$ROOT/../"  # folder above jarklin
-  # cant find jarklin-executable which means was started via `wget wizard.sh | bash` or so
-  if [ ! -f "./jarklin/jarklin" ] || [ "$("./jarklin/jarklin" --verify-jarklin)" != "jarklin" ]; then
+  cd "$ROOT/"
+  if ! check_is_jarklin; then
     whiptail --title "Jarklin-Wizard - Uninstall" --msgbox "Could not find Jarklin installation\n($(pwd))" 20 60
     return 0
   fi
-  if whiptail --title "$TITLE - Auth" --yesno "Are you sure want to uninstall Jarklin?\n$ROOT" 20 60; then
-    rm -rf "./jarklin"
+  cd ".."
+  if whiptail --title "Jarklin-Wizard - Uninstall" --yesno "Are you sure want to uninstall Jarklin?\n$ROOT/" 20 60; then
+    rm -rf "$ROOT"
+    if [ "$CWD" = "$ROOT" ]; then
+      CWD="$(dirname "$CWD")"
+    fi
+    ROOT=$(dirname "$ROOT")  # dunno how smart
     whiptail --title "Jarklin-Wizard - Uninstall" --msgbox "Jarklin was uninstalled" 20 60
   fi
 }
+
 
 function wizard_create_config() {
   TITLE="Jarklin-Wizard - Create Config"
@@ -319,19 +348,27 @@ $FP
 For more or detailed options see https://jarklin.github.io/config/config-options" 20 60
 }
 
+
 function wizard_main() {
-  CWD="$(pwd)"
   while true; do
     cd "$CWD"  # reset in case a sub-command changes the directory
-    CHOICE=$(whiptail --title "Jarklin-Wizard" --menu "What do you want to do?" 20 60 10 --nocancel --notags \
-      "wizard_install" "Install Jarklin" \
-      "wizard_uninstall" "Uninstall Jarklin" \
-      "wizard_create_config" "Generate a new config" \
+
+    OPTIONS=()
+    OPTIONS+=("wizard_install" "Install Jarklin here")
+#    OPTIONS+=("wizard_update" "Update Jarklin")
+    if check_can_uninstall; then
+      OPTIONS+=("wizard_uninstall" "Uninstall Jarklin")
+    fi
+    OPTIONS+=("wizard_create_config" "Generate a new config")
+
+    CHOICE=$(whiptail --title "Jarklin-Wizard" --menu "What do you want to do?" 20 60 10 --cancel-button "Exit" --notags \
+      "${OPTIONS[@]}" \
       "exit" "Exit the Wizard" \
       3>&2 2>&1 1>&3
-#      "wizard_update" "Update Jarklin" \
       )
-    "$CHOICE"
+    "$CHOICE" || whiptail --title "Jarklin-Wizard" --msgbox "Something went wrong.
+
+(@$CHOICE)" 20 60
   done
 }
 
