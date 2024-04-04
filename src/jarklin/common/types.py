@@ -3,11 +3,10 @@ r"""
 
 """
 import typing as _t
-from pathlib import Path as _Path
 from os import PathLike as _PathLike
 
 
-PathSource: _t.TypeAlias = _t.Union[str, _PathLike, _Path]
+PathSource: _t.TypeAlias = _t.Union[str, _PathLike]
 
 
 # -------------------------------------------------------------------------------------------------------------------- #

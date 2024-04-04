@@ -18,7 +18,7 @@ import typing as t
 from pathlib import Path
 from abc import abstractmethod
 from configlib import ConfigInterface
-from jarklin.common.types import PathSource
+from ...common.types import PathSource
 
 
 logger = logging.getLogger(__name__)

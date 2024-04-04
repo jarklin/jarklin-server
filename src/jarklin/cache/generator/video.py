@@ -16,11 +16,14 @@ import typing as t
 from pathlib import Path
 from contextlib import ExitStack
 from functools import cached_property
-import ffmpeg
 from PIL import Image
-from jarklin.common.types import VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
-from jarklin.cache.generator._ffprope_typing import FFProbeResult, FFProbeVideoStream, FFProbeAudioStream, FFProbeSubtitleStream, \
-    FFProbeChapter
+from ...common.types import (
+    VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
+)
+from ...common.ffmpeg import ffmpeg, ffprobe
+from ...common.ffmpeg.ffprope_typing import (
+    FFProbeResult, FFProbeVideoStream, FFProbeAudioStream, FFProbeSubtitleStream, FFProbeChapter
+)
 from ._base import CacheGenerator
 
 
@@ -84,22 +87,26 @@ class VideoCacheGenerator(CacheGenerator):
                           for offset in scene_offsets]
 
         vw, vh = self.stat_width, self.stat_height
-        scale = (min(self.max_dimensions[0], vw), -1) if (vw > vh) else (-1, min(self.max_dimensions[1], vh))
+        scale = (min(self.max_dimensions[0], vw), -2) if (vw > vh) else (-2, min(self.max_dimensions[1], vh))
 
         logger.debug(f"{self}: running ffmpeg to extract images")
-        (
-            ffmpeg
-            .input(str(self.source))
-            .filter('select', "+".join(f"eq(n,{frame})" for frame in extract_frames))
-            .filter('scale', *scale)
-            .output(str(self.previews_cache.joinpath("%d.png")), vframes=len(extract_frames), vsync=0)
-            # .global_args('-threads', str(self.config.getint('cache', 'video', 'ffmpeg', 'threads', fallback=0)))
-            .run(quiet=True, overwrite_output=True)
-        )
+        ffmpeg([
+            '-i', str(self.source),  # input
+            '-vf', "select=" + "+".join(f"eq(n,{frame})" for frame in extract_frames),  # specify the frames we want
+            '-vf', f'scale={scale[0]}:{scale[1]}',  # re-scale images. (remove and with Pillow?)
+            '-vframes', f"{len(extract_frames)}",  # number of frames to output. maybe could help slightly
+            '-vsync', f"{0}",  # dunno anymore
+            '-y',  # overwrite if existing. prevent blocking
+            '-codec', 'libwebp',
+            '-lossless', f"{1}",  # no loss is better for resulting images
+            # todo: maybe slightly higher compression-level/quality for reduced file size
+            '-compression_level', f"{0}", '-quality', f"{0}",  # I am speed.
+            str(self.previews_cache / "%d.webp"),
+        ])
 
         logger.debug(f"{self}: copying main-frames to previews/")
         for i, j in enumerate(range(0, len(extract_frames), len(scene_offsets))):
-            source = self.previews_cache.joinpath(f"{j+1}.png")
+            source = self.previews_cache.joinpath(f"{j+1}.webp")
             dest = self.previews_dir.joinpath(f"{i+1}.webp")
             with Image.open(source) as image:
                 image.save(dest, format='WEBP', method=6, quality=80)
@@ -112,7 +119,7 @@ class VideoCacheGenerator(CacheGenerator):
         shutil.copyfile(preview_source, self.dest.joinpath("preview.webp"))
 
     def generate_animated_preview(self) -> None:
-        filepaths = sorted(self.previews_cache.glob("*.png"), key=lambda f: int(f.stem))
+        filepaths = sorted(self.previews_cache.glob("*.webp"), key=lambda f: int(f.stem))
         with ExitStack() as stack:
             images: t.List[Image.Image] = [stack.enter_context(Image.open(fp)) for fp in filepaths]
             first, *frames = images
@@ -154,7 +161,7 @@ class VideoCacheGenerator(CacheGenerator):
 
     @cached_property
     def ffprobe(self) -> FFProbeResult:
-        return ffmpeg.probe(str(self.source), show_chapters=None)
+        return ffprobe(self.source)
 
     @property
     def video_streams(self) -> t.Iterable[FFProbeVideoStream]:
