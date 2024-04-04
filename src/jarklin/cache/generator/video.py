@@ -18,9 +18,13 @@ from contextlib import ExitStack
 from functools import cached_property
 import ffmpeg
 from PIL import Image
-from jarklin.common.types import VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
-from jarklin.cache.generator._ffprope_typing import FFProbeResult, FFProbeVideoStream, FFProbeAudioStream, FFProbeSubtitleStream, \
-    FFProbeChapter
+from ...common.types import (
+    VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
+)
+from ...common.ffmpeg import ffmpeg, ffprobe
+from ...common.ffmpeg.ffprope_typing import (
+    FFProbeResult, FFProbeVideoStream, FFProbeAudioStream, FFProbeSubtitleStream, FFProbeChapter
+)
 from ._base import CacheGenerator
 
 
@@ -154,7 +158,7 @@ class VideoCacheGenerator(CacheGenerator):
 
     @cached_property
     def ffprobe(self) -> FFProbeResult:
-        return ffmpeg.probe(str(self.source), show_chapters=None)
+        return ffprobe(self.source)
 
     @property
     def video_streams(self) -> t.Iterable[FFProbeVideoStream]:
