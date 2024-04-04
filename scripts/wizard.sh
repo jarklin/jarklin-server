@@ -133,6 +133,7 @@ $(pwd)" 20 60
   fi
 
   if [ $JARKLIN = true ]; then
+    rm -rf "./jarklin/"
     JARKLIN_ARCHIVE="./jarklin.tgz"
     info "Downloading Jarklin..."
     wiz_download_jarklin "$JARKLIN_ARCHIVE"
