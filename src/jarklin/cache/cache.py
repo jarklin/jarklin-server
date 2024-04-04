@@ -149,7 +149,8 @@ class Cache:
                         ))
                         CacheGenerator.remove(fp=dest)
                         continue
-                    generate_data_files()
+                    else:
+                        generate_data_files()
                 logger.debug(f"Cache - adding info for {source!s}")
                 info.append(InfoEntry(
                     path=str(source.relative_to(self.root)),

@@ -11,7 +11,6 @@ r"""
 ├─ {gallery,video}.type
 ├─ is-cache
 """
-import shutil
 import logging
 import functools
 import typing as t
@@ -54,6 +53,7 @@ class CacheGenerator:
             fp/"preview.webp",
             fp/"animated.webp",
             next(fp.glob("*.type"), None),
+            *fp.glob("*.vtt"),
             fp/"is-cache",
         ]
         for f in files:
@@ -130,10 +130,14 @@ class CacheGenerator:
             self.generate_animated_preview()
             logger.info(f"{self}.generate_type()")
             self.generate_type()
+            logger.info(f"{self}.generate_extra()")
+            self.generate_extra()
             logger.info(f"{self}.cleanup()")
             self.cleanup()
-        except KeyboardInterrupt:
-            shutil.rmtree(self.dest, ignore_errors=True)
+        except Exception:
+            logger.error(f"Exception while generating cache. doing cleanup before re-raising")
+            self.cleanup()
+            self.remove(self.dest)
             raise
 
     @t.final
@@ -151,6 +155,9 @@ class CacheGenerator:
 
     @abstractmethod
     def generate_animated_preview(self) -> None: ...
+
+    def generate_extra(self) -> None:
+        pass
 
     @abstractmethod
     def generate_type(self) -> None: ...

@@ -16,6 +16,7 @@ import typing as t
 from pathlib import Path
 from contextlib import ExitStack
 from functools import cached_property
+import undertext
 from PIL import Image
 from ...common.types import (
     VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
@@ -63,14 +64,14 @@ class VideoCacheGenerator(CacheGenerator):
     def generate_previews(self) -> None:
         main_frames: t.List[int]
         if self.chapters:
-            logger.debug(f"{self}: chapters found")
+            logger.debug(f"{self} - chapters found")
             main_frames = [
                 # start-frame of the chapters + 5s
                 round(float(chapter['start_time']) * self.stat_fps + (self.stat_fps * self.scene_offset))
                 for chapter in self.chapters
             ]
         else:
-            logger.debug(f"{self}: no chapters. fallback to evenly spread scenes")
+            logger.debug(f"{self} - no chapters. fallback to evenly spread scenes")
             number_of_scenes = self.scenes_for_duration(duration=self.stat_duration)
             every_n_seconds = self.stat_duration / number_of_scenes
             main_frames = list(range(
@@ -95,16 +96,16 @@ class VideoCacheGenerator(CacheGenerator):
             '-vf', "select=" + "+".join(f"eq(n,{frame})" for frame in extract_frames),  # specify the frames we want
             '-vf', f'scale={scale[0]}:{scale[1]}',  # re-scale images. (remove and with Pillow?)
             '-vframes', f"{len(extract_frames)}",  # number of frames to output. maybe could help slightly
-            '-vsync', f"{0}",  # dunno anymore
-            '-y',  # overwrite if existing. prevent blocking
+            '-vsync', f"{0}",  # don't know why anymore
             '-codec', 'libwebp',
             '-lossless', f"{1}",  # no loss is better for resulting images
             # todo: maybe slightly higher compression-level/quality for reduced file size
             '-compression_level', f"{0}", '-quality', f"{0}",  # I am speed.
+            '-y',  # overwrite if existing. prevent blocking
             str(self.previews_cache / "%d.webp"),
         ])
 
-        logger.debug(f"{self}: copying main-frames to previews/")
+        logger.debug(f"{self} - copying main-frames to previews/")
         for i, j in enumerate(range(0, len(extract_frames), len(scene_offsets))):
             source = self.previews_cache.joinpath(f"{j+1}.webp")
             dest = self.previews_dir.joinpath(f"{i+1}.webp")
@@ -125,6 +126,54 @@ class VideoCacheGenerator(CacheGenerator):
             first, *frames = images
             first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=False,
                        append_images=frames, duration=round(1000 / self.scene_fps), loop=0, method=6, quality=80)
+
+    def generate_extra(self) -> None:
+        self.generate_chapters_webvtt()
+        self.generate_subtitles_webvtt()
+
+    def generate_chapters_webvtt(self) -> None:
+        if not self.chapters:
+            logger.debug(f"{self} - no chapters found. no chapters.vtt generated")
+            return
+        try:
+            captions = [
+                undertext.Caption(start=float(chapter['start_time']), end=float(chapter['end_time']),
+                                  text=chapter['tags']['title'])
+                for chapter in self.chapters
+            ]
+            undertext.dumps(captions, self.dest.joinpath("chapters.vtt"))
+        except Exception as error:
+            logger.error(f"{self} - Failed to generate chapters.vtt", exc_info=error)
+
+    def generate_subtitles_webvtt(self) -> None:
+        if not self.subtitle_streams:
+            logger.debug(f"{self} - no subtitles found. no subtitles.*.vtt are generated")
+            return
+
+        image_codecs = {'dvb_subtitle', 'dvd_subtitle', 'hdmv_pgs_subtitle', 'xsub'}
+        text_codecs = {'ass', 'jacosub', 'microdvd', 'mov_text', 'mpl2', 'pjs', 'realtext', 'sami', 'srt', 'ssa', 'stl',
+                       'subrip', 'subviewer', 'subviewer1', 'text', 'vplayer', 'webvtt'}
+
+        for subtitle in self.subtitle_streams:
+            index = subtitle['index']
+            codec = subtitle['codec_name']
+            lang = subtitle['tags']['language']
+            fp = self.previews_cache.joinpath(f"subtitles.{lang}.vtt")
+
+            if codec in image_codecs:
+                logger.warning(f"image-based-subtitles extraction is currently not supported (#{index}:{lang})")
+            elif codec in text_codecs:
+                try:
+                    ffmpeg([
+                        '-i', str(self.source),
+                        '-map', f"0:{index}",  # maps subtitle-stream to output-stream
+                        '-y',  # overwrite if existing. prevent blocking
+                        str(fp),
+                    ])
+                except Exception as error:
+                    logger.error(f"{self} - Failed to extract {fp.name}", exc_info=error)
+            else:
+                logger.error(f"{self} - Unsupported subtitle formast: {codec}")
 
     def generate_type(self):
         self.dest.joinpath("video.type").touch()

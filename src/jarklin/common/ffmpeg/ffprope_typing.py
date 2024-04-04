@@ -12,6 +12,8 @@ class FFProbeResult(t.TypedDict):
 
 
 class FFProbeVideoStream(t.TypedDict):
+    index: int
+    codec_name: str
     codec_type: t.Literal['video']
     width: int
     height: int
@@ -24,6 +26,8 @@ class FFProbeVideoStream(t.TypedDict):
 
 
 class FFProbeAudioStream(t.TypedDict):
+    index: int
+    codec_name: str
     codec_type: t.Literal['audio']
     channel_layout: str
     disposition: 'FFProbeStreamDisposition'
@@ -31,6 +35,8 @@ class FFProbeAudioStream(t.TypedDict):
 
 
 class FFProbeSubtitleStream(t.TypedDict):
+    index: int
+    codec_name: str
     codec_type: t.Literal['subtitle']
     disposition: 'FFProbeStreamDisposition'
     tags: 'FFProbeStreamTags'

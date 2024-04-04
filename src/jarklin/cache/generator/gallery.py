@@ -83,18 +83,18 @@ class GalleryCacheGenerator(CacheGenerator):
                             animated_count += 1
                             offset = j * pheight
                             img = image.crop((0, offset, width, offset + pheight))
-                            img.thumbnail(self.max_dimensions)
+                            img.thumbnail(self.max_dimensions, resample=Image.Resampling.LANCZOS)
                             img.save(self.animated_cache / f"{animated_count}.webp", format="WEBP",
                                      lossless=True, quality=0, method=0)
                     else:
                         logger.debug(f"{self}: {fp.name} - resizing for animated preview")
                         animated_count += 1
                         img = image.copy()
-                        img.thumbnail(self.max_dimensions)
+                        img.thumbnail(self.max_dimensions, resample=Image.Resampling.LANCZOS)
                         img.save(self.animated_cache / f"{animated_count}.webp", format="WEBP",
                                  lossless=True, quality=0, method=0)
 
-                image.thumbnail(self.max_dimensions)
+                image.thumbnail(self.max_dimensions, resample=Image.Resampling.LANCZOS)
                 image.save(self.previews_dir.joinpath(f"{i + 1}.webp"), format='WEBP', method=6, quality=80)
 
     def generate_image_preview(self) -> None:
@@ -116,7 +116,7 @@ class GalleryCacheGenerator(CacheGenerator):
 
             # this step is done to ensure all images have the same dimensions. otherwise the save will fail
             logger.debug(f"{self}: resizing frames to fit animated preview")
-            images = [frame.resize((avg_width, avg_height)) for frame in images]
+            images = [frame.resize((avg_width, avg_height), resample=Image.Resampling.LANCZOS) for frame in images]
             first, *frames = images
             # minimize_size=True => warned as slow
             # method=6 => bit slower but better results
