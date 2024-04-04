@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 flask = "*"
 pillow = "*"
-ffmpeg-python = "*"
 config-library = {extras = ["yaml"], version = "*"}
 flask-compress = "*"
 waitress = "*"

@@ -16,7 +16,6 @@ import typing as t
 from pathlib import Path
 from contextlib import ExitStack
 from functools import cached_property
-import ffmpeg
 from PIL import Image
 from ...common.types import (
     VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
@@ -91,15 +90,15 @@ class VideoCacheGenerator(CacheGenerator):
         scale = (min(self.max_dimensions[0], vw), -1) if (vw > vh) else (-1, min(self.max_dimensions[1], vh))
 
         logger.debug(f"{self}: running ffmpeg to extract images")
-        (
-            ffmpeg
-            .input(str(self.source))
-            .filter('select', "+".join(f"eq(n,{frame})" for frame in extract_frames))
-            .filter('scale', *scale)
-            .output(str(self.previews_cache.joinpath("%d.png")), vframes=len(extract_frames), vsync=0)
-            # .global_args('-threads', str(self.config.getint('cache', 'video', 'ffmpeg', 'threads', fallback=0)))
-            .run(quiet=True, overwrite_output=True)
-        )
+        ffmpeg([
+            '-i', str(self.source),  # input
+            '-vf', "select=" + "+".join(f"eq(n,{frame})" for frame in extract_frames),  # specify the frames we want
+            '-vf', f'scale={scale[0]}:{scale[0]}',  # re-scale images. (remove and with Pillow?)
+            '-vframes', f"{len(extract_frames)}",  # number of frames to output. maybe could help slightly
+            '-vsync', f"{0}",  # dunno anymore
+            '-y',  # overwrite if existing. prevent blocking
+            str(self.previews_cache.joinpath("%d.png")),
+        ])
 
         logger.debug(f"{self}: copying main-frames to previews/")
         for i, j in enumerate(range(0, len(extract_frames), len(scene_offsets))):
