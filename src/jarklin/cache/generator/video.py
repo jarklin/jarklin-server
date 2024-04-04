@@ -87,22 +87,26 @@ class VideoCacheGenerator(CacheGenerator):
                           for offset in scene_offsets]
 
         vw, vh = self.stat_width, self.stat_height
-        scale = (min(self.max_dimensions[0], vw), -1) if (vw > vh) else (-1, min(self.max_dimensions[1], vh))
+        scale = (min(self.max_dimensions[0], vw), -2) if (vw > vh) else (-2, min(self.max_dimensions[1], vh))
 
         logger.debug(f"{self}: running ffmpeg to extract images")
         ffmpeg([
             '-i', str(self.source),  # input
             '-vf', "select=" + "+".join(f"eq(n,{frame})" for frame in extract_frames),  # specify the frames we want
-            '-vf', f'scale={scale[0]}:{scale[0]}',  # re-scale images. (remove and with Pillow?)
+            '-vf', f'scale={scale[0]}:{scale[1]}',  # re-scale images. (remove and with Pillow?)
             '-vframes', f"{len(extract_frames)}",  # number of frames to output. maybe could help slightly
             '-vsync', f"{0}",  # dunno anymore
             '-y',  # overwrite if existing. prevent blocking
-            str(self.previews_cache.joinpath("%d.png")),
+            '-codec', 'libwebp',
+            '-lossless', f"{1}",  # no loss is better for resulting images
+            # todo: maybe slightly higher compression-level/quality for reduced file size
+            '-compression_level', f"{0}", '-quality', f"{0}",  # I am speed.
+            str(self.previews_cache / "%d.webp"),
         ])
 
         logger.debug(f"{self}: copying main-frames to previews/")
         for i, j in enumerate(range(0, len(extract_frames), len(scene_offsets))):
-            source = self.previews_cache.joinpath(f"{j+1}.png")
+            source = self.previews_cache.joinpath(f"{j+1}.webp")
             dest = self.previews_dir.joinpath(f"{i+1}.webp")
             with Image.open(source) as image:
                 image.save(dest, format='WEBP', method=6, quality=80)
@@ -115,7 +119,7 @@ class VideoCacheGenerator(CacheGenerator):
         shutil.copyfile(preview_source, self.dest.joinpath("preview.webp"))
 
     def generate_animated_preview(self) -> None:
-        filepaths = sorted(self.previews_cache.glob("*.png"), key=lambda f: int(f.stem))
+        filepaths = sorted(self.previews_cache.glob("*.webp"), key=lambda f: int(f.stem))
         with ExitStack() as stack:
             images: t.List[Image.Image] = [stack.enter_context(Image.open(fp)) for fp in filepaths]
             first, *frames = images
