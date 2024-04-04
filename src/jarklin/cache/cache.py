@@ -89,8 +89,17 @@ class Cache:
         shutil.rmtree(self.jarklin_cache, ignore_errors=ignore_errors)
 
     def iteration(self) -> None:
-        self.invalidate()
-        self.generate()
+        # todo: improve lock?
+        lock = self.jarklin_path / "cache.lock"
+        if lock.is_file():
+            logger.error("another process is currently generating the cache")
+            return
+        lock.touch(exist_ok=False)
+        try:
+            self.invalidate()
+            self.generate()
+        finally:
+            lock.unlink(missing_ok=True)
 
     def invalidate(self) -> None:
         logger.info("cache.invalidate()")
