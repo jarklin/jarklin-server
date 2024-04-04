@@ -27,10 +27,10 @@ import typing as t
 from pathlib import Path
 from contextlib import ExitStack
 from functools import cached_property
-from jarklin.common.types import GalleryMeta, GalleryImageMeta, PathSource
-from ._base import CacheGenerator
-from jarklin.cache.util import is_image_file
 from PIL import Image
+from ...common.types import GalleryMeta, GalleryImageMeta, PathSource
+from ...cache.util import is_image_file
+from ._base import CacheGenerator
 
 
 logger = logging.getLogger(__name__)
@@ -112,10 +112,10 @@ class GalleryCacheGenerator(CacheGenerator):
             images: t.List[Image.Image] = [stack.enter_context(Image.open(fp)) for fp in filepaths]
             avg_width = round(statistics.mean((img.width for img in images)))
             avg_height = round(statistics.mean((img.height for img in images)))
-            logging.debug(f"{self}: animated size calculated to {avg_width}x{avg_height}")
+            logger.debug(f"{self}: animated size calculated to {avg_width}x{avg_height}")
 
             # this step is done to ensure all images have the same dimensions. otherwise the save will fail
-            logging.debug(f"{self}: resizing frames to fit animated preview")
+            logger.debug(f"{self}: resizing frames to fit animated preview")
             images = [frame.resize((avg_width, avg_height)) for frame in images]
             first, *frames = images
             # minimize_size=True => warned as slow
