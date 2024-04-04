@@ -128,10 +128,10 @@ class CacheGenerator:
             self.generate_image_preview()
             logger.info(f"{self}.generate_animated_preview()")
             self.generate_animated_preview()
-            logger.info(f"{self}.generate_type()")
-            self.generate_type()
             logger.info(f"{self}.generate_extra()")
             self.generate_extra()
+            logger.info(f"{self}.generate_type()")
+            self.generate_type()
             logger.info(f"{self}.cleanup()")
             self.cleanup()
         except Exception:
