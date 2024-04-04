@@ -21,7 +21,7 @@ def ffprobe(fp: t.Union[str, PathLike]) -> FFProbeResult:
 
     args = [
         ffprobe_executable, '-hide_banner',
-        '-show_format', '-show_streams', '-show_chapters', '-count_frames',
+        '-show_format', '-show_streams', '-show_chapters',
         '-of', 'json', str(fp),
     ]
 
