@@ -17,7 +17,7 @@ from pathlib import Path
 from contextlib import ExitStack
 from functools import cached_property
 import undertext
-from PIL import Image
+from PIL import Image, ImageStat
 from ...common.types import (
     VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
 )
@@ -93,8 +93,10 @@ class VideoCacheGenerator(CacheGenerator):
         logger.debug(f"{self}: running ffmpeg to extract images")
         ffmpeg([
             '-i', str(self.source),  # input
-            '-vf', "select=" + "+".join(f"eq(n,{frame})" for frame in extract_frames),  # specify the frames we want
-            '-vf', f'scale={scale[0]}:{scale[1]}',  # re-scale images. (remove and with Pillow?)
+            '-vf', ','.join((
+                "select=" + "+".join(f"eq(n\\,{frame})" for frame in extract_frames),  # specify the frames we want
+                f'scale={scale[0]}:{scale[1]}',  # re-scale images. (remove and with Pillow?)
+            )),
             '-vframes', f"{len(extract_frames)}",  # number of frames to output. maybe could help slightly
             '-vsync', f"{0}",  # don't know why anymore
             '-codec', 'libwebp',
@@ -113,9 +115,17 @@ class VideoCacheGenerator(CacheGenerator):
                 image.save(dest, format='WEBP', method=6, quality=80)
 
     def generate_image_preview(self) -> None:
-        # prefer the second as the first could be producer-logo
-        preview_source = self.previews_dir.joinpath("2.webp")
-        if not preview_source.is_file():
+        # algorythm to prevent frames/previews of basically only one color.
+        # (like completely black from scene-transfer or intro)
+        for fp in sorted(self.previews_dir.glob("*.webp"), key=lambda f: int(f.stem)):
+            with Image.open(fp) as image:
+                stat = ImageStat.Stat(image)
+                if max(stat.stddev) > 40:  # check if at least one channel contains vastly different colors
+                    logger.debug(f"{self} - Selecting preview {fp.stem} as cover")
+                    preview_source = fp
+                    break
+        else:
+            logger.debug(f"{self} - Fallback to first preview as cover")
             preview_source = self.previews_dir.joinpath("1.webp")
         shutil.copyfile(preview_source, self.dest.joinpath("preview.webp"))
 
