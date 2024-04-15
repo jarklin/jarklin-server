@@ -9,4 +9,6 @@ if [ ! -f "$PYTHON3" ]; then
   PYTHON3=$(which python3)
 fi
 
-PYTHONPATH="$PYTHONPATH:$THIS/src/" "$PYTHON3" -X utf8 -BO -m jarklin "$@"
+SOURCE="$THIS/src/"
+
+PYTHONPATH="$PYTHONPATH:$SOURCE" "$PYTHON3" -X utf8 -X faulthandler -BO -m jarklin "$@"

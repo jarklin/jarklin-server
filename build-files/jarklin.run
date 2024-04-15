@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-THIS=$(dirname "$(realpath "$0")")
+THIS=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 PARENT=$(dirname "$THIS")
 PYTHON3=$(which python3)
+DEPENDENCIES="$THIS/_deps/"
 
-PYTHONPATH="$PYTHONPATH:$THIS/_deps/:$PARENT" "$PYTHON3" -X utf8 -BO -m jarklin "$@"
+PYTHONPATH="$PYTHONPATH:$DEPENDENCIES:$PARENT" "$PYTHON3" -X utf8 -X faulthandler -BO -m jarklin "$@"
