@@ -84,7 +84,7 @@ util_download_web_ui_parser.set_defaults(fn=commands.util.download_web_ui)
 util_download_web_ui_parser.add_argument('--dest', type=str,
                                          help="where to place the file")
 # util_download_web_ui_parser.add_argument('-x', '--unzip', action=ap.BooleanOptionalAction,
-#                                          help="whether or not to unzip the download web-ui archive")
+#                                          help="whether to unzip the download web-ui archive")
 util_download_web_ui_parser.add_argument('--source', type=str,
                                          help="download source (`user/repo` | `https://...`)")
 

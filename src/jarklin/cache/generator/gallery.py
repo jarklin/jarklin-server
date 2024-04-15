@@ -163,7 +163,7 @@ class GalleryCacheGenerator(CacheGenerator):
         pattern = re.compile(r'(?P<id>\d+)$')  # prefer last digits
         fallback_pattern = re.compile(r'(?P<id>\d+)')  # but accept any if possible
 
-        all_files = [fp for fp in source.iterdir() if fp.is_file()]
+        all_files = [fp for fp in Path(source).iterdir() if fp.is_file()]
         possible_files: t.List[t.Tuple[Path, int]] = []
 
         for fp in all_files:

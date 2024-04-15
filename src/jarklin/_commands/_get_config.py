@@ -29,7 +29,7 @@ def get_config(return_fp: bool = False):
         raise FileNotFoundError("no jarklin config file found in current directory") from None
     else:
         config = configlib.load(fp=fp)
-        config.merge(configlib.load_environ(prefix="JARKLIN"))
+        config.merge(configlib.from_environ(prefix="JARKLIN"))
         configure_logging(config=config)
         configure_process(config=config)
         if return_fp:
