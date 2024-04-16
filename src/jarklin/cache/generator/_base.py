@@ -41,6 +41,9 @@ class CacheGenerator:
 
     @staticmethod
     def remove(fp: PathSource):
+        r"""
+        cleanly removes the cache. does not touch manually added files
+        """
         logger.info(f"Removing {fp!s}")
         fp = Path(fp)
 

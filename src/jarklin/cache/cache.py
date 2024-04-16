@@ -86,9 +86,15 @@ class Cache:
         self._shutdown_event.set()
 
     def remove(self, ignore_errors: bool = False) -> None:
+        r"""
+        removes the jarklin-cache directory
+        """
         shutil.rmtree(self.jarklin_cache, ignore_errors=ignore_errors)
 
     def iteration(self) -> None:
+        r"""
+        runs invalidate() and then generate() with simple lock against other instances
+        """
         # todo: improve lock?
         lock = self.jarklin_path / "cache.lock"
         if lock.is_file():
@@ -102,6 +108,9 @@ class Cache:
             lock.unlink(missing_ok=True)
 
     def invalidate(self) -> None:
+        r"""
+        removes all cache entries that don't have their counterpart, are deprecated our incomplete
+        """
         logger.info("cache.invalidate()")
         for root, dirnames, files in os.walk(self.jarklin_cache):
             if not dirnames and not files:
@@ -122,6 +131,9 @@ class Cache:
                     CacheGenerator.remove(fp=dest)
 
     def generate(self) -> None:
+        r"""
+        generates the missing or deprecated entries into the cache
+        """
         # todo: skip incomplete and add available first
         logger.info("cache.generate()")
         info: t.List[InfoEntry] = []
@@ -176,6 +188,9 @@ class Cache:
         generate_data_files()
 
     def find_generators(self) -> t.List[CacheGenerator]:
+        r"""
+        finds all possible source-entries that should be in the cache
+        """
         logger.info("Collecting Generators")
         generators: t.List[CacheGenerator] = []
 

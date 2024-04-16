@@ -17,8 +17,9 @@ any_number = re.compile(r"\d")
 
 
 def get_mimetype(fp: PathSource) -> str:
+    r""" no-fail get mimetype """
     fp = Path(fp)
-    mime, _ = mimetypes.guess_type(fp)
+    mime, _encoding = mimetypes.guess_type(fp)
     return mime or "unknown/unknown"
 
 
@@ -31,6 +32,9 @@ def is_video_file(fp: PathSource) -> bool:
 
 
 def is_gallery(fp: PathSource, boundary: int = 5) -> bool:
+    r"""
+    checks if fp is a directory with at least $boundary image that contain numbers
+    """
     fp = Path(fp)
     return fp.is_dir() and len([
         fn for fn in fp.iterdir()
@@ -55,6 +59,9 @@ def is_video_cache(fp: PathSource) -> bool:
 
 
 def is_deprecated(source: PathSource, dest: PathSource) -> bool:
+    r"""
+    checks if modification time of source > dest
+    """
     source = Path(source)
     dest = Path(dest)
     if not source.exists():
