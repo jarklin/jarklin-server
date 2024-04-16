@@ -22,7 +22,7 @@ class ProblemEntry(_t.TypedDict):
 # -------------------------------------------------------------------------------------------------------------------- #
 
 
-class InfoEntry(_t.TypedDict):
+class MediaEntry(_t.TypedDict):
     path: str
     name: str
     ext: str
