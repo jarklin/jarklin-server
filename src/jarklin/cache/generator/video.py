@@ -134,7 +134,7 @@ class VideoCacheGenerator(CacheGenerator):
         with ExitStack() as stack:
             images: t.List[Image.Image] = [stack.enter_context(Image.open(fp)) for fp in filepaths]
             first, *frames = images
-            first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=False,
+            first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=True,
                        append_images=frames, duration=round(1000 / self.scene_fps), loop=0, method=6, quality=80)
 
     def generate_extra(self) -> None:
