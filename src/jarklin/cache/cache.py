@@ -10,7 +10,7 @@ import typing as t
 from pathlib import Path
 from functools import cached_property
 from configlib import ConfigInterface
-from ..common.types import InfoEntry, ProblemEntry
+from ..common.types import MediaEntry, ProblemEntry
 from ..common import dot_ignore, scheduling
 from .generator import CacheGenerator, GalleryCacheGenerator, VideoCacheGenerator
 from .util import is_video_file, is_gallery, is_deprecated, get_creation_time, get_modification_time, is_cache
@@ -86,9 +86,15 @@ class Cache:
         self._shutdown_event.set()
 
     def remove(self, ignore_errors: bool = False) -> None:
+        r"""
+        removes the jarklin-cache directory
+        """
         shutil.rmtree(self.jarklin_cache, ignore_errors=ignore_errors)
 
     def iteration(self) -> None:
+        r"""
+        runs invalidate() and then generate() with simple lock against other instances
+        """
         # todo: improve lock?
         lock = self.jarklin_path / "cache.lock"
         if lock.is_file():
@@ -102,6 +108,9 @@ class Cache:
             lock.unlink(missing_ok=True)
 
     def invalidate(self) -> None:
+        r"""
+        removes all cache entries that don't have their counterpart, are deprecated our incomplete
+        """
         logger.info("cache.invalidate()")
         for root, dirnames, files in os.walk(self.jarklin_cache):
             if not dirnames and not files:
@@ -122,60 +131,74 @@ class Cache:
                     CacheGenerator.remove(fp=dest)
 
     def generate(self) -> None:
-        # todo: skip incomplete and add available first
+        r"""
+        generates the missing or deprecated entries into the cache
+        """
         logger.info("cache.generate()")
-        info: t.List[InfoEntry] = []
+        media: t.List[MediaEntry] = []
         problems: t.List[ProblemEntry] = []
         generators: t.List[CacheGenerator] = self.find_generators()
+        jobs: t.List[CacheGenerator] = []
 
-        def generate_data_files():
-            logger.info("Cache - generating media.json")
-            with open(self.jarklin_path / 'media.json', 'w') as fp:
-                fp.write(json.dumps(info))
-            logger.info("Cache - generating problems.json")
-            with open(self.jarklin_path / 'problems.json', 'w') as fp:
-                fp.write(json.dumps(problems))
-
+        # adds existing cache entries into media-list
         for generator in generators:
             source = generator.source
             dest = generator.dest
             logger.debug(f"Cache - adding {generator}")
-            try:
-                if (
-                    is_deprecated(source=source, dest=dest)
-                    or CacheGenerator.is_incomplete(fp=dest)
-                ):
-                    logger.info(f"Cache - generating {generator}")
-                    try:
-                        generator.generate()
-                    except Exception as error:
-                        logger.error(f"Cache: generation failed ({generator})", exc_info=error)
-                        problems.append(ProblemEntry(
-                            file=str(source.relative_to(self.root)),
-                            type=type(error).__name__,
-                            description=str(error),
-                            traceback='\n'.join(format_exception(type(error), error, error.__traceback__))
-                        ))
-                        CacheGenerator.remove(fp=dest)
-                        continue
-                    else:
-                        generate_data_files()
+            if is_deprecated(source=source, dest=dest) or CacheGenerator.is_incomplete(fp=dest):
+                jobs.append(generator)
+            else:
                 logger.debug(f"Cache - adding info for {source!s}")
-                info.append(InfoEntry(
-                    path=str(source.relative_to(self.root)),
-                    name=source.stem if source.is_file() else source.name,
-                    ext=source.suffix if source.is_file() else "",
-                    creation_time=get_creation_time(source),
-                    modification_time=get_modification_time(source),
-                    meta=json.loads(dest.joinpath("meta.json").read_bytes()),
-                ))
-            except FileNotFoundError as error:
-                logger.error(f"Cache - {generator} failed", exc_info=error)
-                continue
+                media.append(self._get_media_entry(generator))
 
-        generate_data_files()
+        self._write_media(media=media)
+
+        # generate missing cache entries and add them to media-list
+        for generator in jobs:
+            source = generator.source
+            dest = generator.dest
+            logger.info(f"Cache - generating {generator}")
+            try:
+                generator.generate()
+            except Exception as error:
+                logger.error(f"Cache: generation failed ({generator})", exc_info=error)
+                problems.append(ProblemEntry(
+                    file=str(source.relative_to(self.root)),
+                    type=type(error).__name__,
+                    description=str(error),
+                    traceback='\n'.join(format_exception(type(error), error, error.__traceback__))
+                ))
+                CacheGenerator.remove(fp=dest)
+                self._write_problems(problems=problems)
+            else:
+                media.append(self._get_media_entry(generator=generator))
+                self._write_media(media=media)
+
+    def _get_media_entry(self, generator: CacheGenerator) -> MediaEntry:
+        source, dest = generator.source, generator.dest
+        return MediaEntry(
+            path=str(source.relative_to(self.root)),
+            name=source.stem if source.is_file() else source.name,
+            ext=source.suffix if source.is_file() else "",
+            creation_time=get_creation_time(source),
+            modification_time=get_modification_time(source),
+            meta=json.loads(dest.joinpath("meta.json").read_bytes()),
+        )
+
+    def _write_media(self, media: t.List[MediaEntry]) -> None:
+        logger.info("Cache - generating media.json")
+        with open(self.jarklin_path / 'media.json', 'w') as fp:
+            fp.write(json.dumps(media))
+
+    def _write_problems(self, problems: t.List[ProblemEntry]) -> None:
+        logger.info("Cache - generating problems.json")
+        with open(self.jarklin_path / 'problems.json', 'w') as fp:
+            fp.write(json.dumps(problems))
 
     def find_generators(self) -> t.List[CacheGenerator]:
+        r"""
+        finds all possible source-entries that should be in the cache
+        """
         logger.info("Collecting Generators")
         generators: t.List[CacheGenerator] = []
 

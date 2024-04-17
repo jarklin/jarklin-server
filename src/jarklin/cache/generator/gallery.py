@@ -7,9 +7,6 @@ todo: support for .cb_ file formats
 - .cbt → TAR  # import tarfile
 - .cbz → ZIP  # import zipfile
 
-todo: what if image is extremely height (eg. 512x8192)
-- crop for animated preview!?
-
 gallery/
 ├─ preview.webp
 ├─ animated.webp
@@ -52,7 +49,7 @@ class GalleryCacheGenerator(CacheGenerator):
         return self.config.getfloat('cache', 'gallery', 'animated', 'frame_time', fallback=1.0)
 
     @cached_property
-    def max_images(self) -> int:
+    def animated_max_images(self) -> int:
         return self.config.getint('cache', 'gallery', 'animated', 'max_images', fallback=20)
 
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -69,7 +66,7 @@ class GalleryCacheGenerator(CacheGenerator):
             fp = self.source.joinpath(info['filename'])
             with Image.open(fp) as image:
 
-                if animated_count < self.max_images:
+                if animated_count < self.animated_max_images:
                     # note: quality=0 & method=0 during save. we don't care about the size of these temp-images
                     if image.height > image.width * 3:
                         logger.debug(f"{self}: {fp.name} - image height is too much."
@@ -77,12 +74,12 @@ class GalleryCacheGenerator(CacheGenerator):
                         width, height = image.size
                         rough_ratio = 9 / 16  # portrait
                         times = round((height * rough_ratio) / width)
-                        pheight = round(height / times)
-                        for j in range(times):
-                            logger.debug(f"{self}: {fp.name}#{j} - resizing for animated preview")
+                        part_height = round(height / times)
+                        for n in range(times):
+                            logger.debug(f"{self}: {fp.name}#{n} - resizing for animated preview")
                             animated_count += 1
-                            offset = j * pheight
-                            img = image.crop((0, offset, width, offset + pheight))
+                            offset = n * part_height
+                            img = image.crop((0, offset, width, offset + part_height))
                             img.thumbnail(self.max_dimensions, resample=Image.Resampling.LANCZOS)
                             img.save(self.animated_cache / f"{animated_count}.webp", format="WEBP",
                                      lossless=True, quality=0, method=0)
@@ -104,19 +101,20 @@ class GalleryCacheGenerator(CacheGenerator):
     def generate_animated_preview(self) -> None:
         import statistics
 
-        filepaths = sorted(self.animated_cache.glob("*.webp"), key=lambda f: int(f.stem))[:self.max_images]
+        filepaths = sorted(self.animated_cache.glob("*.webp"), key=lambda f: int(f.stem))[:self.animated_max_images]
         if not filepaths:
             raise FileNotFoundError("no previews found")
 
         with ExitStack() as stack:
             images: t.List[Image.Image] = [stack.enter_context(Image.open(fp)) for fp in filepaths]
-            avg_width = round(statistics.mean((img.width for img in images)))
-            avg_height = round(statistics.mean((img.height for img in images)))
-            logger.debug(f"{self}: animated size calculated to {avg_width}x{avg_height}")
+            average_width = round(statistics.mean((img.width for img in images)))
+            average_height = round(statistics.mean((img.height for img in images)))
+            logger.debug(f"{self}: animated size calculated to {average_width}x{average_height}")
 
             # this step is done to ensure all images have the same dimensions. otherwise the save will fail
             logger.debug(f"{self}: resizing frames to fit animated preview")
-            images = [frame.resize((avg_width, avg_height), resample=Image.Resampling.LANCZOS) for frame in images]
+            images = [frame.resize((average_width, average_height), resample=Image.Resampling.LANCZOS)
+                      for frame in images]
             first, *frames = images
             # minimize_size=True => warned as slow
             # method=6 => bit slower but better results
