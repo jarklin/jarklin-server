@@ -186,12 +186,12 @@ class Cache:
         )
 
     def _write_media(self, media: t.List[MediaEntry]) -> None:
-        logger.info("Cache - generating media.json")
+        logger.info("Cache - updating media.json")
         with open(self.jarklin_path / 'media.json', 'w') as fp:
             fp.write(json.dumps(media))
 
     def _write_problems(self, problems: t.List[ProblemEntry]) -> None:
-        logger.info("Cache - generating problems.json")
+        logger.info("Cache - updating problems.json")
         with open(self.jarklin_path / 'problems.json', 'w') as fp:
             fp.write(json.dumps(problems))
 
