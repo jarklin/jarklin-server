@@ -128,39 +128,48 @@ $(pwd)" 20 60
     esac
   done
 
-  if [ $JARKLIN = true ] && [ -d "./jarklin/" ] && ! whiptail --yesno "./jarklin/ seems to exist. It will be overwritten." 20 60 --yes-button "Continue" --no-button "Cancel"; then
+  if [ $JARKLIN = true ] && [ -d "./jarklin/" ] && ! whiptail --yesno "'$(pwd)/jarklin/' seems to exist. It will be overwritten." 20 60 --yes-button "Continue" --no-button "Cancel"; then
     return 0;
   fi
 
   if [ $JARKLIN = true ]; then
-    rm -rf "./jarklin/"
     JARKLIN_ARCHIVE="./jarklin.tgz"
+
     info "Downloading Jarklin..."
     wiz_download_jarklin "$JARKLIN_ARCHIVE"
+
+    info "Cleanup..."
+    rm -rf "./jarklin/"
+
     info "Extracting Jarklin..."
     tar -xf "$JARKLIN_ARCHIVE" -C .
     rm "$JARKLIN_ARCHIVE"
 
     info "Installing dependencies..."
-    rm -rf "jarklin/_deps/"
-    mkdir -p "jarklin/_deps/"
-    python3 -m pip install -r "jarklin/requirements.txt" -t "jarklin/_deps/" --disable-pip-version-check
+    rm -rf "./jarklin/_deps/"
+    mkdir -p "./jarklin/_deps/"
+    python3 -m pip install -r "./jarklin/requirements.txt" -t "./jarklin/_deps/" --disable-pip-version-check
   fi
 
   if [ $WEB_UI = true ]; then
     WEB_UI_ARCHIVE="./web-ui.tgz"
     WEB_UI_DIR="./jarklin/web/web-ui/"
+
     info "Downloading Web-UI..."
     wiz_download_web_ui "$WEB_UI_ARCHIVE"
-    mkdir -p "$WEB_UI_DIR"
+
+    info "Cleanup..."
+    rm -rf "$WEB_UI_DIR"
+
     info "Extracting Web-UI..."
+    mkdir -p "$WEB_UI_DIR"
     tar -xf "$WEB_UI_ARCHIVE" -C "$WEB_UI_DIR"
     rm "$WEB_UI_ARCHIVE"
   fi
 
   if [ $BETTER_EXCEPTIONS = true ]; then
     info "Installing better-exceptions..."
-    python3 -m pip install -U better-exceptions -t "jarklin/_deps/" --disable-pip-version-check
+    python3 -m pip install -U better-exceptions -t "./jarklin/_deps/" --disable-pip-version-check
   fi
 
   whiptail --title "Jarklin-Wizard - Install" --msgbox "Jarklin was successfully installed.
