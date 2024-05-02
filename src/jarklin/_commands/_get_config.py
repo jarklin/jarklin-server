@@ -30,6 +30,7 @@ def get_config(return_fp: bool = False):
     else:
         config = configlib.load(fp=fp)
         config.merge(configlib.from_environ(prefix="JARKLIN"))
+        configlib.config.update(config)
         configure_logging(config=config)
         configure_process(config=config)
         if return_fp:
