@@ -19,4 +19,4 @@ def ffmpeg(args: t.Iterable[str]):
 
     logger.debug(f"running: {shlex.join(args)}")
 
-    return sp.run(args, check=True, capture_output=True, text=True)
+    return sp.run(args, check=True, capture_output=True)
