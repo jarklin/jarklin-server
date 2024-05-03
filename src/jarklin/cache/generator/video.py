@@ -106,11 +106,18 @@ class VideoCacheGenerator(CacheGenerator):
             '-y',  # overwrite if existing. prevent blocking
             str(self.previews_cache / "%d.webp"),
         ])
+        actual_previews = len(list(self.previews_cache.glob("*.webp")))
+        expected_previews = len(extract_frames)
+        if actual_previews != expected_previews:
+            logger.warning(f"{self} - The number of extracted frames does not match the expected amount."
+                           f" ({actual_previews=} != {expected_previews=})")
 
         logger.debug(f"{self} - copying main-frames to previews/")
         for i, j in enumerate(range(0, len(extract_frames), len(scene_offsets))):
             source = self.previews_cache.joinpath(f"{j+1}.webp")
             dest = self.previews_dir.joinpath(f"{i+1}.webp")
+            if not source.is_file():
+                logger.error(f"{self} - frame {dest.name} not found")
             with Image.open(source) as image:
                 image.save(dest, format='WEBP', method=6, quality=80)
 
