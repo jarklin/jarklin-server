@@ -39,7 +39,6 @@ class WatchGod:
     """
 
     _observer: 'Observer'
-    _some_event: 'threading.Event'
     _quiet_time: float
     _dirty_lock: 'threading.Lock'
     _dirty: t.Set[Path]
@@ -53,7 +52,6 @@ class WatchGod:
         self._observer = Observer()
         self._observer.schedule(self, str(root), recursive=True, event_filter=mutating_events)
 
-        self._some_event = threading.Event()
         self._quiet_time = quiet_time
         self._dirty_lock = threading.Lock()
         self._dirty = set()
@@ -81,27 +79,34 @@ class WatchGod:
         self._observer.join(timeout=timeout)
 
     def wait(self, *, timeout: float = None, poll_delay: float = None) -> None:
-        r""" combination of wait_some_event() and wait_events_calm_down() """
+        r""" combination of wait_for_new_changes() and wait_events_calm_down() """
         start_time = time.time()
-        self.wait_some_event(timeout=timeout)
+        self.wait_for_new_changes(timeout=timeout)
         now = time.time()
         timeout = start_time - now if timeout else None
         self.wait_events_calm_down(timeout=timeout, poll_delay=poll_delay)
 
-    def wait_some_event(self, *, timeout: float = None) -> None:
-        r""" waits till any event """
-        self._some_event.clear()
-        self._some_event.wait(timeout=timeout)
-
-    def wait_events_calm_down(self, *, timeout: float = None, poll_delay: float = None) -> None:
-        r""" waits till events have calmed down """
-        # note: polling
-        poll_delay = (self._quiet_time / 10) if poll_delay is None else poll_delay  # delay between polling
+    def wait_for_new_changes(self, *, timeout: float = None, poll_delay: float = None) -> None:
+        r""" waits till any changes where detected """
+        poll_delay = (self._quiet_time / 10) if poll_delay is None else poll_delay
         start_time = time.time()  # for timeout
         while True:
             now = time.time()
             if timeout and now > (start_time + timeout):
-                raise TimeoutError()
+                raise TimeoutError(f"No new changed within the specified timeout of {timeout:.1}s")
+            with self._dirty_lock:
+                if self._dirty:
+                    break
+            time.sleep(poll_delay)
+
+    def wait_events_calm_down(self, *, timeout: float = None, poll_delay: float = None) -> None:
+        r""" waits till events have calmed down """
+        poll_delay = (self._quiet_time / 10) if poll_delay is None else poll_delay
+        start_time = time.time()  # for timeout
+        while True:
+            now = time.time()
+            if timeout and now > (start_time + timeout):
+                raise TimeoutError(f"Filesystem-Events didn't calm down in the specified timeout of {timeout:.1}s")
             with self._last_event_lock:
                 if self._last_event + self._quiet_time < now:
                     break
@@ -116,8 +121,7 @@ class WatchGod:
 
     def dispatch(self, event: events.FileSystemEvent) -> None:
         r""" internal usage only """
-        self._some_event.set()
-        with self._dirty_lock, self._last_event_lock:  # separated or together. no idea
+        with self._dirty_lock, self._last_event_lock:  # separated or together. no idea what's better
             self._dirty.add(Path(event.src_path))
             if event.dest_path:
                 self._dirty.add(Path(event.dest_path))
