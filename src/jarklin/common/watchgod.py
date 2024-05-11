@@ -40,13 +40,13 @@ class WatchGod:
 
     _observer: 'Observer'
     _some_event: 'threading.Event'
-    _tidetime: float
+    _quiet_time: float
     _dirty_lock: 'threading.Lock'
     _dirty: t.Set[Path]
     _last_event_lock: 'threading.Lock'
     _last_event: float
 
-    def __init__(self, root: 'PathSource', *, tidetime: float = 30.0):
+    def __init__(self, root: 'PathSource', *, quiet_time: float = 30.0):
         root = Path(root).expanduser().absolute()
         if not root.is_dir():
             raise NotADirectoryError(f"'{root!s}' is not a directory or does not exist")
@@ -54,7 +54,7 @@ class WatchGod:
         self._observer.schedule(self, str(root), recursive=True, event_filter=mutating_events)
 
         self._some_event = threading.Event()
-        self._tidetime = tidetime
+        self._quiet_time = quiet_time
         self._dirty_lock = threading.Lock()
         self._dirty = set()
         self._last_event_lock = threading.Lock()
@@ -96,14 +96,14 @@ class WatchGod:
     def wait_events_calm_down(self, *, timeout: float = None, poll_delay: float = None) -> None:
         r""" waits till events have calmed down """
         # note: polling
-        poll_delay = (self._tidetime / 10) if poll_delay is None else poll_delay  # delay between polling
+        poll_delay = (self._quiet_time / 10) if poll_delay is None else poll_delay  # delay between polling
         start_time = time.time()  # for timeout
         while True:
             now = time.time()
             if timeout and now > (start_time + timeout):
                 raise TimeoutError()
             with self._last_event_lock:
-                if self._last_event + self._tidetime < now:
+                if self._last_event + self._quiet_time < now:
                     break
             time.sleep(poll_delay)
 
