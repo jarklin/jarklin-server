@@ -9,9 +9,10 @@ import logging
 import typing as t
 from pathlib import Path
 from functools import cached_property
+from filelock import FileLock
 from configlib import ConfigInterface
 from ..common.types import MediaEntry, ProblemEntry
-from ..common import dot_ignore, scheduling
+from ..common import dot_ignore, filesystemwatcher
 from .generator import CacheGenerator, GalleryCacheGenerator, VideoCacheGenerator
 from .util import is_video_file, is_gallery, is_deprecated, get_creation_time, get_modification_time, is_cache
 try:
@@ -28,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 class Cache:
     def __init__(self, config: ConfigInterface) -> None:
-        self._shutdown_event = None
         self._config = config
 
     @cached_property
@@ -59,31 +59,36 @@ class Cache:
         logger.info(f"Cache - jarklin cache directory: {directory!s}")
         return directory
 
-    # todo: replace with file-system-monitoring
+    @cached_property
+    def quiet_time(self) -> float:
+        return self._config.getfloat('cache', 'quite_time', fallback=30.0)
+
+    @cached_property
+    def cache_lock(self) -> FileLock:
+        return FileLock(self.jarklin_path / "cache.lock")
+
     def run(self) -> None:
-        import time
-        import schedule
-
-        scheduler = schedule.Scheduler()
-        scheduler.every(1).hour.at(":00").do(self.iteration)
-        shutdown_event, thread = scheduling.run_continuously(scheduler, interval=5)
-        self._shutdown_event = shutdown_event
+        logger.info("Doing a complete cache run")
+        self.iteration()
+        watcher = filesystemwatcher.FilesystemWatcher(self.root, quiet_time=self.quiet_time)
         try:
-            while thread.is_alive():
-                time.sleep(5)  # tiny bit larger for less resources
-        except (KeyboardInterrupt, InterruptedError):
+            while True:
+                logger.info("Cache is waiting for new changes in the filesystem")
+                watcher.wait()
+                logger.info("Cache detected some changes in the filesystem")
+                watcher.get_dirty()  # clear that for now
+                # changed = watcher.get_dirty()  # todo: implement that
+                # self._process_changed(changed=changed)
+                self.iteration()
+        except KeyboardInterrupt:
             logger.info("shutdown signal received. graceful shutdown")
-            # attempt a graceful shutdown
-            shutdown_event.set()
-            while thread.is_alive():
-                time.sleep(1)
-        finally:
-            self._shutdown_event = None
-
-    def shutdown(self) -> None:
-        if self._shutdown_event is None:
-            raise RuntimeError("cache is not running")
-        self._shutdown_event.set()
+            watcher.stop()
+            watcher.join()
+        except Exception as error:
+            logger.critical(f"Cache error: {error!s}", exc_info=error)
+            watcher.stop()
+            watcher.join(timeout=1.0)  # not long here
+            raise error
 
     def remove(self, ignore_errors: bool = False) -> None:
         r"""
@@ -93,19 +98,11 @@ class Cache:
 
     def iteration(self) -> None:
         r"""
-        runs invalidate() and then generate() with simple lock against other instances
+        runs invalidate() and then generate() with a lock against other instances
         """
-        # todo: improve lock?
-        lock = self.jarklin_path / "cache.lock"
-        if lock.is_file():
-            logger.error("another process is currently generating the cache")
-            return
-        lock.touch(exist_ok=False)
-        try:
+        with self.cache_lock:
             self.invalidate()
             self.generate()
-        finally:
-            lock.unlink(missing_ok=True)
 
     def invalidate(self) -> None:
         r"""
