@@ -12,7 +12,7 @@ if t.TYPE_CHECKING:
     from .types import PathSource
 
 
-__all__ = ['WatchGod']
+__all__ = ['FilesystemWatcher']
 
 
 mutating_events: t.List[t.Type[events.FileSystemEvent]] = [
@@ -27,11 +27,11 @@ mutating_events: t.List[t.Type[events.FileSystemEvent]] = [
 ]
 
 
-class WatchGod:
+class FilesystemWatcher:
     r"""
     class to watch a directory for any changes but waits for filesystem events to calm down before reporting them
 
-    >>> god = WatchGod(root=...)
+    >>> god = FilesystemWatcher(root=...)
     >>> god.start()
     >>> god.wait()
     >>> god.get_dirty()
@@ -58,7 +58,7 @@ class WatchGod:
         self._last_event_lock = threading.Lock()
         self._last_event = 0.0
 
-    def __enter__(self) -> 'WatchGod':
+    def __enter__(self) -> 'FilesystemWatcher':
         self.start()
         return self
 
@@ -132,7 +132,7 @@ class WatchGod:
 
 
 if __name__ == '__main__':
-    god = WatchGod("~/Downloads/")
+    god = FilesystemWatcher("~/Downloads/")
     god.start()
     try:
         while True:
