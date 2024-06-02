@@ -14,6 +14,7 @@ wcmatch = "*"
 werkzeug = "*"
 pystatx = { version = "*", markers="sys_platform != 'win32'" }
 undertext = "*"
+filelock = "*"
 
 [dev-packages]
 better-exceptions = "*"
