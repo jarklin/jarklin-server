@@ -28,8 +28,14 @@ logger = logging.getLogger(__name__)
 
 
 class Cache:
+    _config: ConfigInterface
+    media: t.List[MediaEntry]
+    problems: t.List[ProblemEntry]
+
     def __init__(self, config: ConfigInterface) -> None:
         self._config = config
+        self.media = []
+        self.problems = []
 
     @cached_property
     def ignorer(self) -> 'dot_ignore.DotIgnore':
@@ -67,6 +73,9 @@ class Cache:
     def cache_lock(self) -> FileLock:
         return FileLock(self.jarklin_path / "cache.lock")
 
+    def filter_allowed(self, paths: t.List[Path]) -> t.List[Path]:
+        return [path for path in paths if not self.ignorer.ignored(path)]
+
     def run(self) -> None:
         logger.info("Doing a complete cache run")
         self.iteration()
@@ -77,8 +86,10 @@ class Cache:
                 watcher.wait()
                 logger.info("Cache detected some changes in the filesystem")
                 watcher.get_dirty()  # clear that for now
-                # changed = watcher.get_dirty()  # todo: implement that
-                # self._process_changed(changed=changed)
+                # todo: implement that
+                # changed = self.filter_allowed(watcher.get_dirty())
+                # if changed:
+                #     self._process_changed(changed=changed)
                 self.iteration()
         except KeyboardInterrupt:
             logger.info("shutdown signal received. graceful shutdown")
@@ -148,7 +159,7 @@ class Cache:
                 logger.debug(f"Cache - adding info for {source!s}")
                 media.append(self._get_media_entry(generator))
 
-        self._write_media(media=media)
+        self._write_media_file(media=media)
 
         # generate missing cache entries and add them to media-list
         for generator in jobs:
@@ -167,10 +178,10 @@ class Cache:
                 ))
                 if dest.is_dir():
                     CacheGenerator.remove(fp=dest)
-                self._write_problems(problems=problems)
+                self._write_problems_file(problems=problems)
             else:
                 media.append(self._get_media_entry(generator=generator))
-                self._write_media(media=media)
+                self._write_media_file(media=media)
 
     def _get_media_entry(self, generator: CacheGenerator) -> MediaEntry:
         source, dest = generator.source, generator.dest
@@ -183,21 +194,21 @@ class Cache:
             meta=json.loads(dest.joinpath("meta.json").read_bytes()),
         )
 
-    def _write_media(self, media: t.List[MediaEntry]) -> None:
+    def _write_media_file(self, media: t.List[MediaEntry] = None) -> None:
         logger.info("Cache - updating media.json")
         with open(self.jarklin_path / 'media.json', 'w') as fp:
-            fp.write(json.dumps(media))
+            fp.write(json.dumps(media or self.media))
 
-    def _write_problems(self, problems: t.List[ProblemEntry]) -> None:
+    def _write_problems_file(self, problems: t.List[ProblemEntry] = None) -> None:
         logger.info("Cache - updating problems.json")
         with open(self.jarklin_path / 'problems.json', 'w') as fp:
-            fp.write(json.dumps(problems))
+            fp.write(json.dumps(problems or self.problems))
 
     def find_generators(self) -> t.List[CacheGenerator]:
         r"""
         finds all possible source-entries that should be in the cache
         """
-        logger.info("Collecting Generators")
+        logger.info("Cache - Collecting Generators")
         generators: t.List[CacheGenerator] = []
 
         for root, dirnames, filenames in os.walk(self.root):
