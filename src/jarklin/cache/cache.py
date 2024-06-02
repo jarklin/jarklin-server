@@ -9,6 +9,7 @@ import logging
 import typing as t
 from pathlib import Path
 from functools import cached_property
+from filelock import FileLock
 from configlib import ConfigInterface
 from ..common.types import MediaEntry, ProblemEntry
 from ..common import dot_ignore, scheduling
@@ -59,6 +60,10 @@ class Cache:
         logger.info(f"Cache - jarklin cache directory: {directory!s}")
         return directory
 
+    @cached_property
+    def cache_lock(self) -> FileLock:
+        return FileLock(self.jarklin_path / "cache.lock")
+
     # todo: replace with file-system-monitoring
     def run(self) -> None:
         import time
@@ -95,17 +100,9 @@ class Cache:
         r"""
         runs invalidate() and then generate() with simple lock against other instances
         """
-        # todo: improve lock?
-        lock = self.jarklin_path / "cache.lock"
-        if lock.is_file():
-            logger.error("another process is currently generating the cache")
-            return
-        lock.touch(exist_ok=False)
-        try:
+        with self.cache_lock:
             self.invalidate()
             self.generate()
-        finally:
-            lock.unlink(missing_ok=True)
 
     def invalidate(self) -> None:
         r"""
