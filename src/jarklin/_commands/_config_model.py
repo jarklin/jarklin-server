@@ -20,10 +20,12 @@ class WebConfigModel(v.StrictConfigModel):
     server: v.Optional['ServerConfigModel'] = None
     session: v.Optional['SessionConfigModel'] = None
     auth: v.Optional['AuthConfigModel'] = None
+    gzip: bool = None
     optimize: v.Optional['OptimizeConfigModel'] = None
     image_optimization_minimum_size: v.PositiveInt = None
+    proxy_fix: v.Optional['ProxyFixConfigModel'] = None
 
-    class ServerConfigModel(v.StrictConfigModel):
+    class ServerConfigModel(v.FlexibleConfigModel):  # yes. allow extra parameters
         host: v.IPvAnyAddress = None
         port: v.PositiveInt = None
 
@@ -40,6 +42,13 @@ class WebConfigModel(v.StrictConfigModel):
     class OptimizeConfigModel(v.StrictConfigModel):
         image: bool = None
         video: bool = None
+
+    class ProxyFixConfigModel(v.StrictConfigModel):
+        x_forwarded_for: v.NonNegativeInt = None
+        x_forwarded_proto: v.NonNegativeInt = None
+        x_forwarded_host: v.NonNegativeInt = None
+        x_forwarded_port: v.NonNegativeInt = None
+        x_forwarded_prefix: v.NonNegativeInt = None
 
 
 class CacheConfigModel(v.StrictConfigModel):
@@ -80,6 +89,7 @@ class LoggingConfigModel(v.StrictConfigModel):
         v.Literal['ERROR'],
         v.Literal['CRITICAL'],
     ] = None
+    console: bool = None
     file: v.Optional['FileConfigModel'] = None
 
     class FileConfigModel(v.StrictConfigModel):
