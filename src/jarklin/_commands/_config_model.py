@@ -26,8 +26,15 @@ class WebConfigModel(v.StrictConfigModel):
     proxy_fix: v.Optional['ProxyFixConfigModel'] = None
 
     class ServerConfigModel(v.FlexibleConfigModel):  # yes. allow extra parameters
-        host: v.IPvAnyAddress = None
+        host: v.Union[v.Literal["localhost"], v.IPvAnyAddress] = None
         port: v.PositiveInt = None
+        listen: str = None
+        ipv4: bool = None
+        ipv6: bool = None
+        unix_socket: str = None
+        threads: v.PositiveInt = None
+        url_scheme: v.Union[v.Literal["http"], v.Literal["https"]] = None
+        backlog: v.PositiveInt = None
 
     class SessionConfigModel(v.StrictConfigModel):
         permanent: bool = None
