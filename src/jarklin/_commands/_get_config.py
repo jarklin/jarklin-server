@@ -9,14 +9,8 @@ from ._logging import configure_logging
 from ._process_config import configure_process
 
 
-@t.overload
-def get_config() -> 'configlib.ConfigInterface': ...
-@t.overload
-def get_config(return_fp: bool = True) -> t.Tuple['configlib.ConfigInterface', str]: ...
-
-
 @cache
-def get_config(return_fp: bool = False):
+def get_config() -> t.Tuple['configlib.ConfigInterface', str]:
     try:
         fp = configlib.find(
             ".jarklin.ext",
@@ -33,7 +27,4 @@ def get_config(return_fp: bool = False):
         configlib.config.update(config)
         configure_logging(config=config)
         configure_process(config=config)
-        if return_fp:
-            return config, str(fp.absolute())
-        else:
-            return config
+        return config, str(fp.absolute())
