@@ -14,7 +14,7 @@ def run() -> None:
     from .._get_config import get_config
     from ...web import app
 
-    config, config_fp = get_config(return_fp=True)
+    config, config_fp = get_config()
 
     app.config['EXCLUDE'] = [config_fp]
 
