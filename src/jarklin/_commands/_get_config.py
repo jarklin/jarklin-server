@@ -7,6 +7,7 @@ from functools import cache
 import configlib
 from ._logging import configure_logging
 from ._process_config import configure_process
+from ._config_model import ConfigModel
 
 
 @t.overload
@@ -28,9 +29,16 @@ def get_config(return_fp: bool = False):
     except configlib.ConfigNotFoundError:
         raise FileNotFoundError("no jarklin config file found in current directory") from None
     else:
-        config = configlib.load(fp=fp)
+        config = configlib.config
+        config.merge(configlib.load(fp=fp))
         config.merge(configlib.from_environ(prefix="JARKLIN"))
-        configlib.config.update(config)
+        try:
+            config.validate(ConfigModel, update=False)
+        except configlib.ValidationError as validation_error:
+            print("Bad configuration file")  # yes. print. logging is only configured with a correct config file
+            for error in validation_error.args[0]:
+                print(f"- {error['type']}: {error['msg']} ({'->'.join(error['loc'])})")
+            exit(1)
         configure_logging(config=config)
         configure_process(config=config)
         if return_fp:
