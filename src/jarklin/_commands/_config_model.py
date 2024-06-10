@@ -26,7 +26,7 @@ class WebConfigModel(v.StrictConfigModel):
     proxy_fix: v.Optional['ProxyFixConfigModel'] = None
 
     class ServerConfigModel(v.FlexibleConfigModel):  # yes. allow extra parameters
-        host: v.Union[v.Literal["localhost"], v.IPvAnyAddress] = None
+        host: v.Union[v.Literal["*"], v.Literal["localhost"], v.IPvAnyAddress] = None
         port: v.PositiveInt = None
         listen: str = None
         ipv4: bool = None
@@ -40,6 +40,7 @@ class WebConfigModel(v.StrictConfigModel):
         permanent: bool = None
         lifetime: v.PositiveInt = None
         refresh_each_request: bool = None
+        secret_key: str = None
 
     class AuthConfigModel(v.StrictConfigModel):
         username: str = None
