@@ -96,8 +96,9 @@ class GalleryCacheGenerator(CacheGenerator):
 
     def generate_image_preview(self) -> None:
         # animated_cache is better than previews_dir because larger image are cut for the animated preview
-        first_preview = self.animated_cache.joinpath("1.webp")
-        shutil.copyfile(first_preview, self.dest.joinpath("preview.webp"))
+        # but because animated_cache images are quick-saved they need to be optimized
+        with Image.open(self.animated_cache.joinpath("1.webp")) as image:
+            image.save(self.dest.joinpath("preview.webp"), format='WEBP', method=6, quality=80)
 
     def generate_animated_preview(self) -> None:
         import statistics
