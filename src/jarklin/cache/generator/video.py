@@ -109,8 +109,10 @@ class VideoCacheGenerator(CacheGenerator):
         actual_previews = len(list(self.previews_cache.glob("*.webp")))
         expected_previews = len(extract_frames)
         if actual_previews != expected_previews:
-            logger.warning(f"{self} - The number of extracted frames does not match the expected amount."
-                           f" ({actual_previews=} != {expected_previews=})")
+            message = (f"The number of extracted frames does not match the expected amount."
+                       f" ({actual_previews=} != {expected_previews=})")
+            logger.error(f"{self} - {message}")
+            raise RuntimeError(message)
 
         logger.debug(f"{self} - copying main-frames to previews/")
         for i, j in enumerate(range(0, len(extract_frames), len(scene_offsets))):
