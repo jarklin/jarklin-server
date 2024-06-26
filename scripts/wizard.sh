@@ -12,11 +12,13 @@ if ! command -v pip3 >/dev/null; then
 fi
 
 
-#if [ ${#BASH_SOURCE[@]} -eq 0 ]; then
-#  echo "Interactive with curl"
-#else
-#  echo "local with bash"
-#fi
+if [ ${#BASH_SOURCE[@]} -eq 0 ]; then
+  # 'curl ... | bash' or 'wget ... | bash'
+  INTERACTIVE_WITH_CURL=true
+else
+  # 'bash wizard' or './wizard'
+  INTERACTIVE_WITH_CURL=false
+fi
 ROOT="$(dirname "$(realpath "${BASH_SOURCE[0]:-$0}")")"
 CWD="$(realpath "$(pwd)")"
 
@@ -374,6 +376,22 @@ For more or detailed options see https://jarklin.github.io/config/config-options
 }
 
 
+function wizard_update_itself() {
+  SCRIPT_FILE="$(realpath "${BASH_SOURCE[0]:-$0}")"
+  if [[ ! -f "$SCRIPT_FILE" ]]; then
+    >&2 echo "Wizard file does not exist"
+    return 1
+  fi
+  NEW_CONTENT="$(curl -Ls https://github.com/jarklin/jarklin/raw/main/scripts/wizard.sh)"
+  echo "$NEW_CONTENT" > "$SCRIPT_FILE"
+  whiptail --title "$TITLE" --msgbox "Wizard was updated with the latest version
+
+It is highly recommended to restart this script as the running version is the old one
+
+Wizard: $SCRIPT_FILE" 20 60
+}
+
+
 function wizard_main() {
   while true; do
     cd "$CWD"  # reset in case a sub-command changes the directory
@@ -385,6 +403,9 @@ function wizard_main() {
       OPTIONS+=("wizard_uninstall" "Uninstall Jarklin")
     fi
     OPTIONS+=("wizard_create_config" "Generate a new config")
+    if [[ $INTERACTIVE_WITH_CURL != true ]]; then
+      OPTIONS+=("wizard_update_itself" "Update the Wizard")
+    fi
 
     CHOICE=$(whiptail --title "Jarklin-Wizard" --menu "What do you want to do?" 20 60 10 --cancel-button "Exit" --notags \
       "${OPTIONS[@]}" \
