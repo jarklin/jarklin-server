@@ -81,7 +81,8 @@ function wiz_ask_directory() {
 
 
 function check_is_jarklin() {
-  if [ ! -f "./jarklin" ] || [ "$("./jarklin" --verify-jarklin)" != "jarklin" ]; then
+  executable="${1:-.}/jarklin"
+  if [ ! -f "$executable" ] || [ "$("$executable" --verify-jarklin)" != "jarklin" ]; then
     return 1
   fi
   return 0
@@ -172,8 +173,12 @@ $(pwd)" 20 60
     python3 -m pip install -U better-exceptions -t "./jarklin/_deps/" --disable-pip-version-check
   fi
 
+  OUTDIR="$(realpath "./jarklin")"
+
   whiptail --title "Jarklin-Wizard - Install" --msgbox "Jarklin was successfully installed.
-$(realpath "./jarklin")" 20 60
+
+Installation: $OUTDIR
+Executable:   $OUTDIR/jarklin" 20 60
 }
 
 function wizard_update() {
@@ -184,11 +189,11 @@ function wizard_update() {
 
 
 function check_can_uninstall() {
-  cd "$ROOT/"
-  if [ ! -w . ]; then
+  # check if we have permissions
+  if [ ! -w "$ROOT" ]; then
     return 1
   fi
-  if check_is_jarklin; then
+  if check_is_jarklin "$ROOT"; then
     return 0
   fi
   return 1
