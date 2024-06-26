@@ -6,7 +6,10 @@ import logging
 import mimetypes
 import flask
 from .image import optimize_image
-from .video import optimize_video
+from .video import optimize_video, BITRATE_MAP as VIDEO_BITRATE_MAP
+
+
+__all__ = ['optimize_file', 'VIDEO_BITRATE_MAP']
 
 
 def optimize_file(fp: str):
