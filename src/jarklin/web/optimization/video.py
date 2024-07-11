@@ -31,7 +31,7 @@ def optimize_video(fp: str):
             ffmpeg_executable, '-hide_banner', '-loglevel', "error",
             '-i', str(fp),
             '-vf', fr"scale=if(lt(iw\,ih)\,min({video_config.height}\,iw)\,-2)"
-                   fr":if(ge(iw\,ih)\,min({video_config.height}\,ih)\,-2)",
+                   fr":if(gte(iw\,ih)\,min({video_config.height}\,ih)\,-2)",
             '-movflags', "faststart",  # web optimized. faster readiness
             '-fpsmax', f"{video_config.max_fps}",
             "-b:v", video_config.video_bitrate,
