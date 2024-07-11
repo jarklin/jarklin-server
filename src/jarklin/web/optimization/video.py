@@ -70,15 +70,15 @@ class OptimizationInfo(t.NamedTuple):
 
 
 BITRATE_MAP: t.Dict[str, OptimizationInfo] = {
-    '240p - 300 kb/s': OptimizationInfo(video_bitrate="300k", audio_bitrate="32k", max_fps=30, height=240),
-    '360p - 500 kb/s': OptimizationInfo(video_bitrate="500k", audio_bitrate="48k", max_fps=30, height=360),
-    '480p - 1 Mb/s': OptimizationInfo(video_bitrate="1000k", audio_bitrate="64k", max_fps=30, height=480),
-    '720p - 1.5 Mb/s': OptimizationInfo(video_bitrate="1500k", audio_bitrate="128k", max_fps=30, height=720),
-    '720p - 2.2 Mb/s': OptimizationInfo(video_bitrate="2250k", audio_bitrate="128k", max_fps=60, height=720),
-    '1080p - 3 Mb/s': OptimizationInfo(video_bitrate="3000k", audio_bitrate="192k", max_fps=30, height=1080),
-    '1080p - 4.5 Mb/s': OptimizationInfo(video_bitrate="4500k", audio_bitrate="192k", max_fps=60, height=1080),
-    '1440p -  6Mb/s': OptimizationInfo(video_bitrate="6000k", audio_bitrate="320k", max_fps=30, height=1440),
-    '1440p - 9 Mb/s': OptimizationInfo(video_bitrate="9000k", audio_bitrate="320k", max_fps=60, height=1440),
-    '2160p - 13 Mb/s': OptimizationInfo(video_bitrate="13000k", audio_bitrate="448k", max_fps=30, height=2160),
-    '2160p - 20 Mb/s': OptimizationInfo(video_bitrate="20000k", audio_bitrate="448k", max_fps=60, height=2160),
+    '240p': OptimizationInfo(video_bitrate="300k", audio_bitrate="32k", max_fps=30, height=240),
+    '360p': OptimizationInfo(video_bitrate="500k", audio_bitrate="48k", max_fps=30, height=360),
+    '480p': OptimizationInfo(video_bitrate="1000k", audio_bitrate="64k", max_fps=30, height=480),
+    '720p': OptimizationInfo(video_bitrate="1500k", audio_bitrate="128k", max_fps=30, height=720),
+    '720p60': OptimizationInfo(video_bitrate="2250k", audio_bitrate="128k", max_fps=60, height=720),
+    '1080p': OptimizationInfo(video_bitrate="3000k", audio_bitrate="192k", max_fps=30, height=1080),
+    '1080p60': OptimizationInfo(video_bitrate="4500k", audio_bitrate="192k", max_fps=60, height=1080),
+    '1440p': OptimizationInfo(video_bitrate="6000k", audio_bitrate="320k", max_fps=30, height=1440),
+    '1440p60': OptimizationInfo(video_bitrate="9000k", audio_bitrate="320k", max_fps=60, height=1440),
+    '2160p': OptimizationInfo(video_bitrate="13000k", audio_bitrate="448k", max_fps=30, height=2160),
+    '2160p60': OptimizationInfo(video_bitrate="20000k", audio_bitrate="448k", max_fps=60, height=2160),
 }
