@@ -20,6 +20,7 @@ gallery/
 import re
 import shutil
 import logging
+import mimetypes
 import typing as t
 from pathlib import Path
 from contextlib import ExitStack
@@ -151,6 +152,7 @@ class GalleryCacheGenerator(CacheGenerator):
         with Image.open(fp) as image:
             return GalleryImageMeta(
                 filename=fp.name,
+                mimetype=mimetypes.guess_type(fp)[0],
                 ext=fp.suffix,
                 width=image.width,
                 height=image.height,

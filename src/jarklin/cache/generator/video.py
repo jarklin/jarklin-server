@@ -12,6 +12,7 @@ video.mp4/
 """
 import shutil
 import logging
+import mimetypes
 import typing as t
 from pathlib import Path
 from contextlib import ExitStack
@@ -110,7 +111,7 @@ class VideoCacheGenerator(CacheGenerator):
         expected_previews = len(extract_frames)
         if actual_previews != expected_previews:
             message = (f"The number of extracted frames does not match the expected amount."
-                       f" ({actual_previews=} != {expected_previews=})")
+                       f" (actual={actual_previews} != expected={expected_previews})")
             logger.error(f"{self} - {message}")
             raise RuntimeError(message)
 
@@ -260,6 +261,7 @@ class VideoCacheGenerator(CacheGenerator):
         return VideoMeta(
             type='video',
             filename=self.source.name,
+            mimetype=mimetypes.guess_type(self.source)[0],
             duration=self.stat_duration,
             width=self.main_video_stream['width'],
             height=self.main_video_stream['height'],
