@@ -7,6 +7,7 @@ import mimetypes
 import os.path as p
 from pathlib import Path
 from ..common.types import PathSource
+from . import _mimefix  # noqa
 try:
     import statx
 except ModuleNotFoundError:
