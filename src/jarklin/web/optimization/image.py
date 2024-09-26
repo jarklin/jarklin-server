@@ -9,6 +9,9 @@ import flask
 from PIL import Image
 
 
+__all__ = ['optimize_image']
+
+
 def optimize_image(fp: str):
     filesize = os.path.getsize(fp)
     if filesize < flask.current_app.config.get('IMAGE_OPTIMIZATION_MINIMUM_SIZE', 1024 * 1024):

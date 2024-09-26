@@ -61,6 +61,14 @@ def get_config():
     )
 
 
+@app.get("/api/video-resolutions")
+def get_video_resolutions():
+    return {
+        name: info._asdict()
+        for name, info in optimization.VIDEO_BITRATE_MAP.items()
+    }
+
+
 @app.get("/auth/username")
 def get_username():
     try:

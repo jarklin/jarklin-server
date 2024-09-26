@@ -12,6 +12,7 @@ video.mp4/
 """
 import shutil
 import logging
+import mimetypes
 import typing as t
 from pathlib import Path
 from contextlib import ExitStack
@@ -21,9 +22,11 @@ from PIL import Image, ImageStat
 from ...common.types import (
     VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
 )
-from ...common.ffmpeg import ffmpeg, ffprobe
-from ...common.ffmpeg.ffprope_typing import (
-    FFProbeResult, FFProbeVideoStream, FFProbeAudioStream, FFProbeSubtitleStream, FFProbeChapter
+from ...common.ffmpeg import ffmpeg
+from ...common.ffprobe import ffprobe
+from ...common.ffprobe.model import (
+    FFProbe as FFProbeResult,
+    Chapter as FFProbeChapter,
 )
 from ._base import CacheGenerator
 
@@ -63,10 +66,11 @@ class VideoCacheGenerator(CacheGenerator):
 
     def generate_previews(self) -> None:
         main_frames: t.List[int]
+        total_frames = self.stat_nb_frames
+        logger.debug(f"{self} - total frames: {total_frames}")
         if self.chapters:
             logger.debug(f"{self} - chapters found")
             main_frames = [
-                # start-frame of the chapters + 5s
                 round(float(chapter['start_time']) * self.stat_fps + (self.stat_fps * self.scene_offset))
                 for chapter in self.chapters
             ]
@@ -76,7 +80,7 @@ class VideoCacheGenerator(CacheGenerator):
             every_n_seconds = self.stat_duration / number_of_scenes
             main_frames = list(range(
                 round(self.stat_fps),  # from start
-                round(self.stat_n_frames - self.stat_fps),  # to end
+                round(total_frames - self.stat_fps),  # to end
                 round(every_n_seconds * self.stat_fps),  # every x frame
             ))
 
@@ -110,7 +114,7 @@ class VideoCacheGenerator(CacheGenerator):
         expected_previews = len(extract_frames)
         if actual_previews != expected_previews:
             message = (f"The number of extracted frames does not match the expected amount."
-                       f" ({actual_previews=} != {expected_previews=})")
+                       f" (actual={actual_previews} != expected={expected_previews})")
             logger.error(f"{self} - {message}")
             raise RuntimeError(message)
 
@@ -156,8 +160,8 @@ class VideoCacheGenerator(CacheGenerator):
             return
         try:
             captions = [
-                undertext.Caption(start=float(chapter['start_time']), end=float(chapter['end_time']),
-                                  text=chapter['tags']['title'])
+                undertext.Caption(start=chapter.start_time, end=chapter.end_time,
+                                  text=chapter.tags.get('title'))
                 for chapter in self.chapters
             ]
             undertext.dumps(captions, self.dest.joinpath("chapters.vtt"))
@@ -165,7 +169,7 @@ class VideoCacheGenerator(CacheGenerator):
             logger.error(f"{self} - Failed to generate chapters.vtt", exc_info=error)
 
     def generate_subtitles_webvtt(self) -> None:
-        if not self.subtitle_streams:
+        if not self.ffprobe.subtitle_streams:
             logger.debug(f"{self} - no subtitles found. no subtitles.*.vtt are generated")
             return
 
@@ -173,10 +177,10 @@ class VideoCacheGenerator(CacheGenerator):
         text_codecs = {'ass', 'jacosub', 'microdvd', 'mov_text', 'mpl2', 'pjs', 'realtext', 'sami', 'srt', 'ssa', 'stl',
                        'subrip', 'subviewer', 'subviewer1', 'text', 'vplayer', 'webvtt'}
 
-        for subtitle in self.subtitle_streams:
-            index = subtitle['index']
-            codec = subtitle['codec_name']
-            lang = subtitle['tags']['language']
+        for subtitle in self.ffprobe.subtitle_streams:
+            index = subtitle.index
+            codec = subtitle.codec_name
+            lang = subtitle.tags.get('language')
             fp = self.previews_cache.joinpath(f"subtitles.{lang}.vtt")
 
             if codec in image_codecs:
@@ -232,89 +236,64 @@ class VideoCacheGenerator(CacheGenerator):
         return ffprobe(self.source)
 
     @property
-    def video_streams(self) -> t.Iterable[FFProbeVideoStream]:
-        return (stream for stream in self.ffprobe["streams"] if stream['codec_type'] == 'video')
-
-    @property
-    def audio_streams(self) -> t.Iterable[FFProbeAudioStream]:
-        return (stream for stream in self.ffprobe["streams"] if stream['codec_type'] == 'audio')
-
-    @property
-    def subtitle_streams(self) -> t.Iterable[FFProbeSubtitleStream]:
-        return (stream for stream in self.ffprobe["streams"] if stream['codec_type'] == 'subtitle')
-
-    @property
-    def main_video_stream(self) -> FFProbeVideoStream:
-        try:
-            return next((s for s in self.video_streams if s['disposition']['default']),
-                        next(iter(self.video_streams)))
-        except StopIteration:
-            raise LookupError(f"video stream in {self.source} not found")
-
-    @property
     def chapters(self) -> t.List[FFProbeChapter]:
-        return self.ffprobe['chapters']
+        return self.ffprobe.chapters
 
     @cached_property
     def meta(self) -> VideoMeta:
+        info: FFProbeResult = self.ffprobe
         return VideoMeta(
             type='video',
             filename=self.source.name,
-            duration=self.stat_duration,
-            width=self.main_video_stream['width'],
-            height=self.main_video_stream['height'],
+            mimetype=mimetypes.guess_type(self.source)[0],
+            duration=info.format.duration,
+            width=info.main_video_stream.width,
+            height=info.main_video_stream.height,
             filesize=self.source.stat().st_size,
             n_previews=len(self.chapters) or self.scenes_for_duration(duration=self.stat_duration),
             video_streams=[VideoStreamMeta(
-                is_default=bool(stream['disposition']['default']),
+                is_default=stream.disposition.default,
                 # note: not the best to assume only one stream with one global duration
-                duration=float(stream.get('duration', self.stat_duration)),
-                width=stream['width'],
-                height=stream['height'],
-                avg_fps=int.__truediv__(*map(int, stream['avg_frame_rate'].split("/"))),
-            ) for stream in self.video_streams],
+                duration=stream.duration or self.stat_duration,
+                width=stream.width,
+                height=stream.height,
+                avg_fps=float(stream.avg_frame_rate),
+            ) for stream in info.video_streams],
             audio_streams=[AudioStreamMeta(
-                is_default=bool(stream['disposition']['default']),
-                language=stream.get('tags', {}).get('language', "<unknown>"),
-            ) for stream in self.audio_streams],
+                is_default=stream.disposition.default,
+                language=stream.tags.get('language', "<unknown>"),
+            ) for stream in info.audio_streams],
             subtitles=[SubtitleStreamMeta(
-                is_default=bool(stream['disposition']['default']),
-                language=stream.get('tags', {}).get('language', "<unknown>"),
-            ) for stream in self.subtitle_streams],
+                is_default=stream.disposition.default,
+                language=stream.tags.get('language', "<unknown>"),
+            ) for stream in info.subtitle_streams],
             chapters=[ChapterMeta(
-                id=chapter['id'],
-                # start=chapter['start'],
-                start_time=float(chapter['start_time']),
-                # end=chapter['end'],
-                end_time=float(chapter['end_time']),
-                title=chapter.get('tags', {})['title'],
+                id=chapter.id,
+                # start=chapter.start,
+                start_time=chapter.start_time,
+                # end=chapter.end,
+                end_time=chapter.end_time,
+                title=chapter.tags.get('title', None),
             ) for chapter in self.chapters],
         )
-
     @cached_property
     def stat_width(self) -> int:
-        return self.main_video_stream['width']
+        return self.ffprobe.main_video_stream.width
 
     @cached_property
     def stat_height(self) -> int:
-        return self.main_video_stream['height']
+        return self.ffprobe.main_video_stream.height
 
     @cached_property
     def stat_duration(self) -> float:
-        return float(self.main_video_stream.get('duration', self.ffprobe['format']['duration']))
+        return self.ffprobe.main_video_stream.duration or self.ffprobe.format.duration
 
     @cached_property
-    def stat_n_frames(self) -> int:
-        try:
-            return int(self.main_video_stream['nb_frames'])
-        except KeyError:
-            return round(self.stat_duration * self.stat_fps)
+    def stat_nb_frames(self) -> int:
+        return self.ffprobe.main_video_stream.nb_frames \
+                or round(self.ffprobe.stat_duration * self.stat_fps)
 
     @cached_property
-    def stat_fps(self) -> float:
-        try:
-            frame_rate: str = self.main_video_stream['avg_frame_rate']  # '25/1'
-        except KeyError:
-            frame_rate: str = self.main_video_stream['r_frame_rate']  # '25/1'
-        numerator, denominator = frame_rate.split('/')  # ('25', '1')
-        return int(numerator) / int(denominator)  # 25 / 1
+    def stat_fps(self):
+        main_stream = self.ffprobe.main_video_stream
+        return main_stream.avg_frame_rate or main_stream.r_frame_rate
