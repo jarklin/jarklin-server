@@ -57,6 +57,27 @@ class VideoCacheGenerator(CacheGenerator):
     def scene_offset(self) -> float:
         return self.config.getfloat('cache', 'video', 'animated', 'scene_offset', fallback=5)
 
+    @cached_property
+    def thumbnails_enabled(self) -> bool:
+        return self.config.getbool('cache', 'video', 'thumbnails', 'enabled', fallback=True)
+
+    @cached_property
+    def thumbnails_delay(self) -> float:
+        return self.config.getfloat('cache', 'video', 'thumbnails', 'delay', fallback=15)
+
+    @cached_property
+    def thumbnails_dimensions(self) -> t.Tuple[int, int]:
+        width = self.config.getint('cache', 'video', 'thumbnails', 'dimensions', 'width', fallback=None)
+        height = self.config.getint('cache', 'video', 'thumbnails', 'dimensions', 'height', fallback=None)
+        if width is None and height is None:  # default sizes
+            width, height = 320, 320
+        # fallbacks for easier calculations later on
+        if width is None:
+            width = height * 10
+        if height is None:
+            height = width * 10
+        return width, height
+
     # ---------------------------------------------------------------------------------------------------------------- #
 
     def generate_meta(self) -> None:
@@ -71,7 +92,7 @@ class VideoCacheGenerator(CacheGenerator):
         if self.chapters:
             logger.debug(f"{self} - chapters found")
             main_frames = [
-                round(float(chapter['start_time']) * self.stat_fps + (self.stat_fps * self.scene_offset))
+                round((chapter.start_time * self.stat_fps) + (self.stat_fps * self.scene_offset))
                 for chapter in self.chapters
             ]
         else:
@@ -125,7 +146,7 @@ class VideoCacheGenerator(CacheGenerator):
             if not source.is_file():
                 logger.error(f"{self} - frame {dest.name} not found")
             with Image.open(source) as image:
-                image.save(dest, format='WEBP', method=6, quality=80)
+                image.save(dest, format='WEBP', minimize_size=True, method=6, quality=80)
 
     def generate_image_preview(self) -> None:
         # algorythm to prevent frames/previews of basically only one color.
@@ -151,8 +172,64 @@ class VideoCacheGenerator(CacheGenerator):
                        append_images=frames, duration=round(1000 / self.scene_fps), loop=0, method=6, quality=80)
 
     def generate_extra(self) -> None:
+        self.generate_storyboard()
         self.generate_chapters_webvtt()
         self.generate_subtitles_webvtt()
+
+    def generate_storyboard(self) -> None:
+        if not self.thumbnails_enabled:
+            return
+        logger.debug(f"{self} - Generating storyboard")
+
+        width, height = self.thumbnails_dimensions
+
+        aspect_ratio = self.stat_width / self.stat_height
+        if (width / height) >= aspect_ratio:
+            width = round(height * aspect_ratio)
+        else:
+            height = round(width / aspect_ratio)
+        logger.debug(f"{self} - storyboard thumbnail size: {width}x{height}")
+
+        logger.debug(f"{self}: running ffmpeg to extract thumbnails")
+        ffmpeg([
+            '-i', str(self.source),  # input
+            '-an',
+            '-sn',
+            '-vf', f"fps=1/{self.thumbnails_delay},scale={width}:{height}",
+            '-codec', 'libwebp',
+            '-lossless', f"{1}",  # no loss is better for resulting images
+            # todo: maybe slightly higher compression-level/quality for reduced file size
+            '-compression_level', f"{0}", '-quality', f"{0}",  # I am speed.
+            '-y',  # overwrite if existing. prevent blocking
+            str(self.thumbnails_cache / "%d.webp"),
+        ])
+
+        thumbnails = sorted(self.thumbnails_cache.glob("*.webp"), key=lambda f: int(f.stem))
+
+        n_horizontal: int = 10
+        n_vertical: int = len(thumbnails) // n_horizontal + 1
+
+        size = (n_horizontal * width, n_vertical * height)
+
+        vtt_parts: t.List[undertext.Caption] = []
+        logger.debug(f"{self} - generating storyboard.{{vtt,webp}}")
+        with Image.new('RGB', size) as storyboard:
+            for i, fn in enumerate(thumbnails):
+                iy, ix = divmod(i, n_horizontal)
+                logger.debug(f"{self} - processing thumbnail {i} at {ix}x{iy}")
+                x, y = ix * width, iy * height
+                with Image.open(fn) as img:
+                    storyboard.paste(img, (x, y))
+                    start_ts = i * self.thumbnails_delay
+                    vtt_parts.append(undertext.Caption(
+                        start=start_ts,
+                        end=start_ts+self.thumbnails_delay,
+                        text=f'storyboard.webp#xywh={x},{y},{img.width},{img.height}'
+                    ))
+            logger.debug(f"{self} - saving storyboard.webp")
+            storyboard.save( self.dest / "storyboard.webp", format="WEBP", minimize_size=True, method=6, quality=80)
+        logger.debug(f"{self} - saving storyboard.vtt")
+        undertext.dump(vtt_parts, fp=self.dest / "storyboard.vtt")
 
     def generate_chapters_webvtt(self) -> None:
         if not self.chapters:
@@ -164,13 +241,13 @@ class VideoCacheGenerator(CacheGenerator):
                                   text=chapter.tags.get('title'))
                 for chapter in self.chapters
             ]
-            undertext.dumps(captions, self.dest.joinpath("chapters.vtt"))
+            undertext.dump(captions, self.dest.joinpath("chapters.vtt"))
         except Exception as error:
             logger.error(f"{self} - Failed to generate chapters.vtt", exc_info=error)
 
     def generate_subtitles_webvtt(self) -> None:
         if not self.ffprobe.subtitle_streams:
-            logger.debug(f"{self} - no subtitles found. no subtitles.*.vtt are generated")
+            logger.debug(f"{self} - no subtitles found. no subtitles.{{lang}}.vtt are generated")
             return
 
         image_codecs = {'dvb_subtitle', 'dvd_subtitle', 'hdmv_pgs_subtitle', 'xsub'}
@@ -203,10 +280,18 @@ class VideoCacheGenerator(CacheGenerator):
 
     def cleanup(self) -> None:
         shutil.rmtree(self.previews_cache, ignore_errors=True)
+        shutil.rmtree(self.thumbnails_cache, ignore_errors=True)
 
     @cached_property
     def previews_cache(self) -> Path:
         path = self.dest.joinpath(".previews")
+        shutil.rmtree(path, ignore_errors=True)
+        path.mkdir(parents=True)
+        return path
+
+    @cached_property
+    def thumbnails_cache(self) -> Path:
+        path = self.dest.joinpath(".thumbnails")
         shutil.rmtree(path, ignore_errors=True)
         path.mkdir(parents=True)
         return path
@@ -291,7 +376,7 @@ class VideoCacheGenerator(CacheGenerator):
     @cached_property
     def stat_nb_frames(self) -> int:
         return self.ffprobe.main_video_stream.nb_frames \
-                or round(self.ffprobe.stat_duration * self.stat_fps)
+                or round(self.stat_duration * self.stat_fps)
 
     @cached_property
     def stat_fps(self):
