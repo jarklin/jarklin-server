@@ -4,13 +4,12 @@ r"""
 """
 import time
 import shlex
-import shutil
 import logging
 import subprocess
 import typing as t
 import flask
-from werkzeug.exceptions import BadRequest as HTTPBadRequest
-from configlib import config
+from werkzeug.exceptions import BadRequest as HTTPBadRequest, ServiceUnavailable as HTTPServiceUnavailable
+from ...common.executables import ffmpeg_executable
 
 
 __all__ = ['optimize_video', 'BITRATE_MAP']
@@ -61,12 +60,13 @@ def build_args(fp: str) -> t.List[str]:
     audio_stream = flask.request.args.get("audio", default=None, type=int)
     subtitle_stream = flask.request.args.get("subtitle", default=None, type=int)
 
-    ffmpeg_executable = shutil.which(config.getstr('ffmpeg', fallback="ffmpeg"))
-    if ffmpeg_executable is None:
-        raise HTTPBadRequest("ffmpeg executable not found")
+    try:
+        ffmpeg = ffmpeg_executable()
+    except FileNotFoundError:
+        raise HTTPServiceUnavailable("ffmpeg executable not found")
 
     args = [
-        ffmpeg_executable,
+        ffmpeg,
         '-hide_banner',
         '-loglevel', "error",
         '-i', str(fp),

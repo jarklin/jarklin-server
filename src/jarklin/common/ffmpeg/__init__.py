@@ -2,7 +2,24 @@
 r"""
 
 """
-from .ffmpeg import ffmpeg
-from .ffprobe import ffprobe
+import shlex
+import logging
+import typing as t
+import subprocess as sp
+from configlib import config
 
-__all__ = ['ffmpeg', 'ffprobe']
+
+__all__ = ['ffmpeg']
+
+
+logger = logging.getLogger(__name__)
+
+
+def ffmpeg(args: t.Iterable[str]):
+    ffmpeg_executable = config.getstr('ffmpeg', fallback="ffmpeg")
+
+    args = [ffmpeg_executable, '-hide_banner', *args]
+
+    logger.debug(f"running: {shlex.join(args)}")
+
+    return sp.run(args, check=True, capture_output=True)
