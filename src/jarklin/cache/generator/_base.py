@@ -137,11 +137,11 @@ class CacheGenerator:
             self.generate_type()
             logger.info(f"{self}.cleanup()")
             self.cleanup()
-        except Exception:
-            logger.error(f"Exception while generating cache. doing cleanup before re-raising")
+        except Exception as err:
+            logger.error(f"Exception while generating cache ({type(err).__name__}). doing cleanup before re-raising")
             self.cleanup()
             self.remove(self.dest)
-            raise
+            raise err
 
     @t.final
     def mark_cache(self):

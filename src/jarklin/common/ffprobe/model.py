@@ -65,7 +65,7 @@ class VideoStream(pydantic.BaseModel, arbitrary_types_allowed=True):
     has_b_frames: int
     sample_aspect_ratio: str = None
     display_aspect_ratio: str = None
-    level: int
+    level: int = None
     r_frame_rate: Fraction
     avg_frame_rate: Fraction
     time_base: Fraction
@@ -89,8 +89,8 @@ class AudioStream(pydantic.BaseModel, arbitrary_types_allowed=True):
     codec_type: t.Literal['audio']
     codec_tag_string: str
     codec_tag: str
-    sample_fmt: str
-    sample_rate: int
+    sample_fmt: str = None
+    sample_rate: int = None
     channels: int
     channel_layout: str
     bits_per_sample: int
@@ -99,7 +99,7 @@ class AudioStream(pydantic.BaseModel, arbitrary_types_allowed=True):
     time_base: Fraction
     start_pts: int
     start_time: float
-    bit_rate: int
+    bit_rate: int = None
     duration_ts: int = None
     duration: float = None
     disposition: 'Disposition'
