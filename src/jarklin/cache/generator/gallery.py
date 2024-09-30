@@ -26,6 +26,7 @@ from pathlib import Path
 from contextlib import ExitStack
 from functools import cached_property
 from PIL import Image
+from loggext.decorators import add_logging
 from ...common.types import GalleryMeta, GalleryImageMeta, PathSource
 from ...cache.util import is_image_file
 from ._base import CacheGenerator
@@ -55,11 +56,13 @@ class GalleryCacheGenerator(CacheGenerator):
 
     # ---------------------------------------------------------------------------------------------------------------- #
 
+    @add_logging()
     def generate_meta(self) -> None:
         import json
         with open(self.dest / "meta.json", "w") as file:
             file.write(json.dumps(self.meta))
 
+    @add_logging()
     def generate_previews(self) -> None:
         animated_count = 0
 
@@ -95,12 +98,14 @@ class GalleryCacheGenerator(CacheGenerator):
                 image.thumbnail(self.max_dimensions, resample=Image.Resampling.LANCZOS)
                 image.save(self.previews_dir.joinpath(f"{i + 1}.webp"), format='WEBP', method=6, quality=80)
 
+    @add_logging()
     def generate_image_preview(self) -> None:
         # animated_cache is better than previews_dir because larger image are cut for the animated preview
         # but because animated_cache images are quick-saved they need to be optimized
         with Image.open(self.animated_cache.joinpath("1.webp")) as image:
             image.save(self.dest.joinpath("preview.webp"), format='WEBP', method=6, quality=80)
 
+    @add_logging()
     def generate_animated_preview(self) -> None:
         import statistics
 
@@ -124,9 +129,11 @@ class GalleryCacheGenerator(CacheGenerator):
             first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=True,
                        append_images=frames, duration=round(self.frame_time * 1000), loop=0, method=6, quality=80)
 
+    @add_logging()
     def generate_type(self) -> None:
         self.dest.joinpath("gallery.type").touch()
 
+    @add_logging()
     def cleanup(self) -> None:
         shutil.rmtree(self.animated_cache, ignore_errors=True)
 
