@@ -17,6 +17,7 @@ import typing as t
 from pathlib import Path
 from abc import abstractmethod
 from configlib import ConfigInterface
+from ...common.fileindex import FileIndex
 from ...common.types import PathSource
 
 
@@ -34,6 +35,19 @@ class CacheGenerator:
     @functools.cached_property
     def root(self) -> Path:
         return Path.cwd()
+
+    @functools.cached_property
+    def file_index(self) -> FileIndex:
+        index = FileIndex(self.source / "file-index.txt")
+        if index.exists():
+            index.load()
+        return index
+
+    @functools.cached_property
+    def previews_dir(self) -> Path:
+        path = self.dest.joinpath("previews")
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
     @functools.cache
     def __repr__(self):
@@ -167,9 +181,3 @@ class CacheGenerator:
 
     def cleanup(self) -> None:
         pass
-
-    @functools.cached_property
-    def previews_dir(self) -> Path:
-        path = self.dest.joinpath("previews")
-        path.mkdir(parents=True, exist_ok=True)
-        return path

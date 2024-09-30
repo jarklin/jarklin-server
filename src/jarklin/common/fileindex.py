@@ -20,6 +20,9 @@ class FileIndex:
         self.root = self.fp.parent
         self._index = []
 
+    def exists(self) -> bool:
+        return self.fp.exists()
+
     def load(self) -> None:
         r""" loads the index from disk """
         with open(self.fp, "r") as f:
