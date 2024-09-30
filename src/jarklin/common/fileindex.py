@@ -20,6 +20,18 @@ class FileIndex:
         self.root = self.fp.parent
         self._index = []
 
+    def __iter__(self):
+        return iter(self._index)
+
+    def __len__(self):
+        return len(self._index)
+
+    def __bool__(self):
+        return bool(self._index)
+
+    def __contains__(self, item: PathLike):
+        return item in self._index
+
     def exists(self) -> bool:
         return self.fp.exists()
 
