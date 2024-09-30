@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "df18b8053b3d70ae9859e479baff8015313da86f768fa3150a43c8cf036c83d0"
+            "sha256": "0c368a15870dc7d9ebc52a0f1ac2101f6a4e96711623303b9eb48aa29eb7eb67"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -34,11 +34,11 @@
         },
         "bracex": {
             "hashes": [
-                "sha256:0725da5045e8d37ea9592ab3614d8b561e22c3c5fde3964699be672e072ab611",
-                "sha256:d2fcf4b606a82ac325471affe1706dd9bbaa3536c91ef86a31f6b766f3dad1d0"
+                "sha256:12c50952415bfa773d2d9ccb8e79651b8cdb1f31a42f6091b804f6ba2b4a66b6",
+                "sha256:13e5732fec27828d6af308628285ad358047cec36801598368cb28bc631dbaf6"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==2.5"
+            "version": "==2.5.post1"
         },
         "brotli": {
             "hashes": [
@@ -190,6 +190,15 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==3.1.4"
+        },
+        "loggext": {
+            "hashes": [
+                "sha256:2339dad56bf24f01b44602f283c2689a53d8dc5f64476cfc3f09d709b9d64afe",
+                "sha256:488101f946736cad83468792225e588ec4854edc9e8131a7f711b6f220064591"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.7'",
+            "version": "==0.2.0"
         },
         "markupsafe": {
             "hashes": [

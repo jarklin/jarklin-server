@@ -4,18 +4,19 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask = "*"
-pillow = "*"
 config-library = {extras = ["validation", "yaml"], version = "*"}
+filelock = "*"
+flask = "*"
 flask-compress = "*"
-waitress = "*"
+loggext = "*"
+pillow = "*"
+pydantic = "*"
+pystatx = { version = "*", markers="sys_platform != 'win32'" }
 schedule = "*"
+undertext = "*"
+waitress = "*"
 wcmatch = "*"
 werkzeug = "*"
-pystatx = { version = "*", markers="sys_platform != 'win32'" }
-undertext = "*"
-filelock = "*"
-pydantic = "*"
 
 [dev-packages]
 better-exceptions = "*"
