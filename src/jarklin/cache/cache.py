@@ -165,8 +165,6 @@ class Cache:
                     description=str(error),
                     traceback='\n'.join(format_exception(type(error), error, error.__traceback__))
                 ))
-                if dest.is_dir():
-                    CacheGenerator.remove(fp=dest)
                 self._write_problems(problems=problems)
             else:
                 media.append(self._get_media_entry(generator=generator))
