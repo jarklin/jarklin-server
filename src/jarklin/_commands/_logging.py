@@ -5,6 +5,8 @@ r"""
 import logging.handlers
 from pathlib import Path
 from configlib import ConfigInterface
+import loggext
+from loggext.handlers import ColoredConsoleHandler
 
 
 SHORT_LOGGING_FORMAT = "{asctime} | {levelname:.3} | {name:<30} | {message}"
@@ -16,7 +18,7 @@ def configure_logging(config: ConfigInterface) -> None:
     handlers = []
 
     if config.getbool('logging', 'console', fallback=True):
-        handlers.append(logging.StreamHandler())
+        handlers.append(logging.StreamHandler() if loggext.is_running_as_service() else ColoredConsoleHandler())
         handlers[-1].setFormatter(logging.Formatter(SHORT_LOGGING_FORMAT, DEFAULT_DATEFORMAT, '{'))
         handlers[-1].addFilter(PillowFilter())
 

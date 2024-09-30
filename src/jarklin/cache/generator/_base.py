@@ -17,6 +17,7 @@ import typing as t
 from pathlib import Path
 from abc import abstractmethod
 from configlib import ConfigInterface
+from ...common.fileindex import FileIndex
 from ...common.types import PathSource
 
 
@@ -35,6 +36,19 @@ class CacheGenerator:
     def root(self) -> Path:
         return Path.cwd()
 
+    @functools.cached_property
+    def file_index(self) -> FileIndex:
+        return FileIndex(root=self.dest).ensure_loaded()
+
+    @functools.cached_property
+    def previews_dir(self) -> Path:
+        path = self.dest.joinpath("previews")
+        if path.is_dir():
+            for fp in path.glob("*.webp"):
+                fp.unlink(missing_ok=True)
+        path.mkdir(parents=True)
+        return path
+
     @functools.cache
     def __repr__(self):
         return f"<{type(self).__name__}: {self.source.relative_to(self.root)!s}>"
@@ -45,73 +59,18 @@ class CacheGenerator:
         cleanly removes the cache. does not touch manually added files
         """
         logger.info(f"Removing {fp!s}")
-        fp = Path(fp)
-
-        if not fp.is_dir():
-            logger.error(f"{fp!s} is not a directory. can't be cleanly removed")
-            return
-
-        files = [
-            fp/"meta.json",
-            fp/"preview.webp",
-            fp/"animated.webp",
-            next(fp.glob("*.type"), None),
-            *fp.glob("*.vtt"),
-            fp/"is-cache",
-        ]
-        for f in files:
-            if f and f.is_file():
-                logger.debug(f"Removing {f!s}")
-                f.unlink()
-
-        previews = fp/"previews"
-        if previews.is_dir():
-            for f in previews.glob("*.webp"):
-                logger.debug(f"Removing {f!s}")
-                f.unlink()
-            if next(previews.iterdir(), None) is None:
-                logger.debug(f"Removing {previews!s}")
-                previews.rmdir()
-            else:
-                logger.debug(f"Not removing {previews!s} as it contains unknown files")
-
-        if next(fp.iterdir(), None) is None:
-            logger.debug(f"Removing {previews!s}")
-            fp.rmdir()
+        index = FileIndex(root=fp)
+        if index.exists():
+            index.load()
+            index.unlink_indexed(cleanup_directories=True)
+            index.unlink()
         else:
-            logger.debug(f"Not removing {fp!s} as it contains unknown files")
+            logger.warning("file-index does no exist. no idea what should to be removed")
 
     @staticmethod
     def is_incomplete(fp: PathSource) -> bool:
-        logger.debug(f"Checking if {fp!s} is incomplete")
-        fp = Path(fp)
-
-        if not fp.joinpath("meta.json").is_file():
-            logger.debug(f"missing meta.json")
-            return True
-        if not fp.joinpath("preview.webp").is_file():
-            logger.debug(f"missing preview.webp")
-            return True
-        if not fp.joinpath("animated.webp").is_file():
-            logger.debug(f"missing animated.webp")
-            return True
-        if next(fp.glob("*.type"), None) is None:
-            logger.debug(f"missing *.type")
-            return True
-        if not fp.joinpath("is-cache").is_file():
-            logger.debug(f"missing is-cache")
-            return True
-
-        previews = fp/"previews"
-        if not previews.is_dir():
-            logger.debug(f"missing previews/")
-            return True
-        if next(previews.glob("*.webp"), None) is None:
-            logger.debug(f"missing previews/*.webp")
-            return True
-
-        logger.debug(f"{fp!s} is not incomplete")
-        return False
+        logger.debug(f"Checking if %s is incomplete", fp)
+        return not FileIndex(root=fp).exists()
 
     @t.final
     def generate(self) -> None:
@@ -140,12 +99,15 @@ class CacheGenerator:
         except Exception as err:
             logger.error(f"Exception while generating cache ({type(err).__name__}). doing cleanup before re-raising")
             self.cleanup()
-            self.remove(self.dest)
+            self.file_index.unlink_indexed(cleanup_directories=True)
             raise err
+        else:
+            logger.info(f"{self} - Saving file-index")
+            self.file_index.save()
 
     @t.final
     def mark_cache(self):
-        self.dest.joinpath("is-cache").touch()
+        self.file_index.add_file(self.dest / "is-cache").touch()
 
     @abstractmethod
     def generate_meta(self) -> None: ...
@@ -167,9 +129,3 @@ class CacheGenerator:
 
     def cleanup(self) -> None:
         pass
-
-    @functools.cached_property
-    def previews_dir(self) -> Path:
-        path = self.dest.joinpath("previews")
-        path.mkdir(parents=True, exist_ok=True)
-        return path

@@ -82,7 +82,7 @@ class VideoCacheGenerator(CacheGenerator):
 
     def generate_meta(self) -> None:
         import json
-        with open(self.dest / "meta.json", 'w') as file:
+        with open(self.file_index.add_file(self.dest / "meta.json"), 'w') as file:
             file.write(json.dumps(self.meta))
 
     def generate_previews(self) -> None:
@@ -146,7 +146,7 @@ class VideoCacheGenerator(CacheGenerator):
             if not source.is_file():
                 logger.error(f"{self} - frame {dest.name} not found")
             with Image.open(source) as image:
-                image.save(dest, format='WEBP', minimize_size=True, method=6, quality=80)
+                image.save(self.file_index.add_file(dest), format='WEBP', minimize_size=True, method=6, quality=80)
 
     def generate_image_preview(self) -> None:
         # algorythm to prevent frames/previews of basically only one color.
@@ -161,15 +161,18 @@ class VideoCacheGenerator(CacheGenerator):
         else:
             logger.debug(f"{self} - Fallback to first preview as cover")
             preview_source = self.previews_dir.joinpath("1.webp")
-        shutil.copyfile(preview_source, self.dest.joinpath("preview.webp"))
+        shutil.copyfile(preview_source, self.file_index.add_file(self.dest / "preview.webp"))
 
     def generate_animated_preview(self) -> None:
         filepaths = sorted(self.previews_cache.glob("*.webp"), key=lambda f: int(f.stem))
         with ExitStack() as stack:
             images: t.List[Image.Image] = [stack.enter_context(Image.open(fp)) for fp in filepaths]
             first, *frames = images
-            first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=True,
-                       append_images=frames, duration=round(1000 / self.scene_fps), loop=0, method=6, quality=80)
+            first.save(
+                self.file_index.add_file(self.dest / "animated.webp"),
+                format="WEBP", save_all=True, minimize_size=True,
+                append_images=frames, duration=round(1000 / self.scene_fps), loop=0, method=6, quality=80,
+            )
 
     def generate_extra(self) -> None:
         self.generate_storyboard()
@@ -227,9 +230,12 @@ class VideoCacheGenerator(CacheGenerator):
                         text=f'storyboard.webp#xywh={x},{y},{img.width},{img.height}'
                     ))
             logger.debug(f"{self} - saving storyboard.webp")
-            storyboard.save( self.dest / "storyboard.webp", format="WEBP", minimize_size=True, method=6, quality=80)
+            storyboard.save(
+                self.file_index.add_file(self.dest / "storyboard.webp"),
+                format="WEBP", minimize_size=True, method=6, quality=80,
+            )
         logger.debug(f"{self} - saving storyboard.vtt")
-        undertext.dump(vtt_parts, fp=self.dest / "storyboard.vtt")
+        undertext.dump(vtt_parts, fp=self.file_index.add_file(self.dest / "storyboard.vtt"))
 
     def generate_chapters_webvtt(self) -> None:
         if not self.chapters:
@@ -241,7 +247,7 @@ class VideoCacheGenerator(CacheGenerator):
                                   text=chapter.tags.get('title'))
                 for chapter in self.chapters
             ]
-            undertext.dump(captions, self.dest.joinpath("chapters.vtt"))
+            undertext.dump(captions, self.file_index.add_file(self.dest / "chapters.vtt"))
         except Exception as error:
             logger.error(f"{self} - Failed to generate chapters.vtt", exc_info=error)
 
@@ -258,17 +264,17 @@ class VideoCacheGenerator(CacheGenerator):
             index = subtitle.index
             codec = subtitle.codec_name
             lang = subtitle.tags.get('language')
-            fp = self.previews_cache.joinpath(f"subtitles.{lang}.vtt")
+            fp = self.previews_cache / f"subtitles.{lang}.vtt"
 
             if codec in image_codecs:
                 logger.warning(f"image-based-subtitles extraction is currently not supported (#{index}:{lang})")
             elif codec in text_codecs:
                 try:
                     ffmpeg([
-                        '-i', str(self.source),
+                        '-i', f"{self.source}",
                         '-map', f"0:{index}",  # maps subtitle-stream to output-stream
                         '-y',  # overwrite if existing. prevent blocking
-                        str(fp),
+                        f"{self.file_index.add_file(fp)}",
                     ])
                 except Exception as error:
                     logger.error(f"{self} - Failed to extract {fp.name}", exc_info=error)
@@ -276,7 +282,7 @@ class VideoCacheGenerator(CacheGenerator):
                 logger.error(f"{self} - Unsupported subtitle formast: {codec}")
 
     def generate_type(self):
-        self.dest.joinpath("video.type").touch()
+        self.file_index.add_file(self.dest / "video.type").touch()
 
     def cleanup(self) -> None:
         shutil.rmtree(self.previews_cache, ignore_errors=True)
