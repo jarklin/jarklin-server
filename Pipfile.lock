@@ -193,12 +193,12 @@
         },
         "loggext": {
             "hashes": [
-                "sha256:2339dad56bf24f01b44602f283c2689a53d8dc5f64476cfc3f09d709b9d64afe",
-                "sha256:488101f946736cad83468792225e588ec4854edc9e8131a7f711b6f220064591"
+                "sha256:deb1c5d5a6865e9fe0175e50837e6355c3b50cb96182120ae70205990ffa57c0",
+                "sha256:fe2f44a55be0d3787c723545da00eb1472c7a99a2022914165f5168b69ee1d2e"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.7'",
-            "version": "==0.2.0"
+            "version": "==0.3.0"
         },
         "markupsafe": {
             "hashes": [
