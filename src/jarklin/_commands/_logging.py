@@ -18,9 +18,9 @@ def configure_logging(config: ConfigInterface) -> None:
 
     if config.getbool('logging', 'console', fallback=True):
         handlers.append(
-            logging.StreamHandler()
+            logging.StreamHandler()  # no need for colors if service
             if loggext.is_running_as_service()
-            else loggext.handlers.ColoredConsoleHandler()
+            else loggext.handlers.ColoredConsoleHandler()  # but in the shell it can help
         )
         handlers[-1].setFormatter(logging.Formatter(SHORT_LOGGING_FORMAT, DEFAULT_DATEFORMAT, '{'))
         handlers[-1].addFilter(PillowFilter())
