@@ -12,7 +12,7 @@ from functools import cached_property
 from filelock import FileLock
 from configlib import ConfigInterface
 from ..common.types import MediaEntry, ProblemEntry
-from ..common import dot_ignore, scheduling
+from ..common import dot_ignore, filesystemwatcher
 from .generator import CacheGenerator, GalleryCacheGenerator, VideoCacheGenerator
 from .util import is_video_file, is_gallery, is_deprecated, get_creation_time, get_modification_time, is_cache
 try:
@@ -28,9 +28,14 @@ logger = logging.getLogger(__name__)
 
 
 class Cache:
+    _config: ConfigInterface
+    media: t.List[MediaEntry]
+    problems: t.List[ProblemEntry]
+
     def __init__(self, config: ConfigInterface) -> None:
-        self._shutdown_event = None
         self._config = config
+        self.media = []
+        self.problems = []
 
     @cached_property
     def ignorer(self) -> 'dot_ignore.DotIgnore':
@@ -61,34 +66,40 @@ class Cache:
         return directory
 
     @cached_property
+    def quiet_time(self) -> float:
+        return self._config.getfloat('cache', 'quite_time', fallback=30.0)
+
+    @cached_property
     def cache_lock(self) -> FileLock:
         return FileLock(self.jarklin_path / "cache.lock")
 
-    # todo: replace with file-system-monitoring
+    def filter_allowed(self, paths: t.List[Path]) -> t.List[Path]:
+        return [path for path in paths if not self.ignorer.ignored(path)]
+
     def run(self) -> None:
-        import time
-        import schedule
-
-        scheduler = schedule.Scheduler()
-        scheduler.every(1).hour.at(":00").do(self.iteration)
-        shutdown_event, thread = scheduling.run_continuously(scheduler, interval=5)
-        self._shutdown_event = shutdown_event
+        logger.info("Doing a complete cache run")
+        self.iteration()
+        watcher = filesystemwatcher.FilesystemWatcher(self.root, quiet_time=self.quiet_time)
         try:
-            while thread.is_alive():
-                time.sleep(5)  # tiny bit larger for less resources
-        except (KeyboardInterrupt, InterruptedError):
+            while True:
+                logger.info("Cache is waiting for new changes in the filesystem")
+                watcher.wait()
+                logger.info("Cache detected some changes in the filesystem")
+                watcher.get_dirty()  # clear that for now
+                # todo: implement that
+                # changed = self.filter_allowed(watcher.get_dirty())
+                # if changed:
+                #     self._process_changed(changed=changed)
+                self.iteration()
+        except KeyboardInterrupt:
             logger.info("shutdown signal received. graceful shutdown")
-            # attempt a graceful shutdown
-            shutdown_event.set()
-            while thread.is_alive():
-                time.sleep(1)
-        finally:
-            self._shutdown_event = None
-
-    def shutdown(self) -> None:
-        if self._shutdown_event is None:
-            raise RuntimeError("cache is not running")
-        self._shutdown_event.set()
+            watcher.stop()
+            watcher.join()
+        except Exception as error:
+            logger.critical(f"Cache error: {error!s}", exc_info=error)
+            watcher.stop()
+            watcher.join(timeout=1.0)  # not long here
+            raise error
 
     def remove(self, ignore_errors: bool = False) -> None:
         r"""
@@ -98,7 +109,7 @@ class Cache:
 
     def iteration(self) -> None:
         r"""
-        runs invalidate() and then generate() with simple lock against other instances
+        runs invalidate() and then generate() with a lock against other instances
         """
         with self.cache_lock:
             self.invalidate()
@@ -148,7 +159,7 @@ class Cache:
                 logger.debug(f"Cache - adding info for {source!s}")
                 media.append(self._get_media_entry(generator))
 
-        self._write_media(media=media)
+        self._write_media_file(media=media)
 
         # generate missing cache entries and add them to media-list
         for generator in jobs:
@@ -167,10 +178,10 @@ class Cache:
                 ))
                 if dest.is_dir():
                     CacheGenerator.remove(fp=dest)
-                self._write_problems(problems=problems)
+                self._write_problems_file(problems=problems)
             else:
                 media.append(self._get_media_entry(generator=generator))
-                self._write_media(media=media)
+                self._write_media_file(media=media)
 
     def _get_media_entry(self, generator: CacheGenerator) -> MediaEntry:
         source, dest = generator.source, generator.dest
@@ -183,21 +194,21 @@ class Cache:
             meta=json.loads(dest.joinpath("meta.json").read_bytes()),
         )
 
-    def _write_media(self, media: t.List[MediaEntry]) -> None:
+    def _write_media_file(self, media: t.List[MediaEntry] = None) -> None:
         logger.info("Cache - updating media.json")
         with open(self.jarklin_path / 'media.json', 'w') as fp:
-            fp.write(json.dumps(media))
+            fp.write(json.dumps(media or self.media))
 
-    def _write_problems(self, problems: t.List[ProblemEntry]) -> None:
+    def _write_problems_file(self, problems: t.List[ProblemEntry] = None) -> None:
         logger.info("Cache - updating problems.json")
         with open(self.jarklin_path / 'problems.json', 'w') as fp:
-            fp.write(json.dumps(problems))
+            fp.write(json.dumps(problems or self.problems))
 
     def find_generators(self) -> t.List[CacheGenerator]:
         r"""
         finds all possible source-entries that should be in the cache
         """
-        logger.info("Collecting Generators")
+        logger.info("Cache - Collecting Generators")
         generators: t.List[CacheGenerator] = []
 
         for root, dirnames, filenames in os.walk(self.root):
