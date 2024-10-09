@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 flask = "*"
 pillow = "*"
-config-library = {extras = ["yaml"], version = "*"}
+config-library = {extras = ["validation", "yaml"], version = "*"}
 flask-compress = "*"
 waitress = "*"
 schedule = "*"
@@ -14,8 +14,9 @@ wcmatch = "*"
 werkzeug = "*"
 pystatx = { version = "*", markers="sys_platform != 'win32'" }
 undertext = "*"
-watchdog = "*"
 filelock = "*"
+pydantic = "*"
+watchdog = "*"
 
 [dev-packages]
 better-exceptions = "*"

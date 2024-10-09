@@ -42,6 +42,7 @@ class GalleryMeta(_t.TypedDict):
 
 class GalleryImageMeta(_t.TypedDict):
     filename: str
+    mimetype: str
     ext: str
     width: int
     height: int
@@ -55,6 +56,7 @@ class GalleryImageMeta(_t.TypedDict):
 class VideoMeta(_t.TypedDict):
     type: _t.Literal['video']
     filename: str
+    mimetype: str
     width: int
     height: int
     duration: float

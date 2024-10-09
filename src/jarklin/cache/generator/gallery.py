@@ -20,6 +20,7 @@ gallery/
 import re
 import shutil
 import logging
+import mimetypes
 import typing as t
 from pathlib import Path
 from contextlib import ExitStack
@@ -95,8 +96,10 @@ class GalleryCacheGenerator(CacheGenerator):
                 image.save(self.previews_dir.joinpath(f"{i + 1}.webp"), format='WEBP', method=6, quality=80)
 
     def generate_image_preview(self) -> None:
-        first_preview = self.previews_dir.joinpath("1.webp")
-        shutil.copyfile(first_preview, self.dest.joinpath("preview.webp"))
+        # animated_cache is better than previews_dir because larger image are cut for the animated preview
+        # but because animated_cache images are quick-saved they need to be optimized
+        with Image.open(self.animated_cache.joinpath("1.webp")) as image:
+            image.save(self.dest.joinpath("preview.webp"), format='WEBP', method=6, quality=80)
 
     def generate_animated_preview(self) -> None:
         import statistics
@@ -149,6 +152,7 @@ class GalleryCacheGenerator(CacheGenerator):
         with Image.open(fp) as image:
             return GalleryImageMeta(
                 filename=fp.name,
+                mimetype=mimetypes.guess_type(fp)[0],
                 ext=fp.suffix,
                 width=image.width,
                 height=image.height,

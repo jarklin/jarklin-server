@@ -12,11 +12,13 @@ if ! command -v pip3 >/dev/null; then
 fi
 
 
-#if [ ${#BASH_SOURCE[@]} -eq 0 ]; then
-#  echo "Interactive with curl"
-#else
-#  echo "local with bash"
-#fi
+if [[ ${#BASH_SOURCE[@]} -eq 0 ]]; then
+  # 'curl ... | bash' or 'wget ... | bash'
+  INTERACTIVE_WITH_CURL=true
+else
+  # 'bash wizard' or './wizard'
+  INTERACTIVE_WITH_CURL=false
+fi
 ROOT="$(dirname "$(realpath "${BASH_SOURCE[0]:-$0}")")"
 CWD="$(realpath "$(pwd)")"
 
@@ -49,7 +51,7 @@ function wiz_ask_directory() {
         shift; shift;
       ;;
     *)
-      if [ "$SELECTED" = "." ]; then
+      if [[ "$SELECTED" = "." ]]; then
         SELECTED="$1"
       else
         echo "unknown parameter '$1'"
@@ -71,7 +73,7 @@ function wiz_ask_directory() {
       "${OPTIONS[@]}" \
       3>&2 2>&1 1>&3
     )
-    if [ "$CHOICE" = "." ]; then
+    if [[ "$CHOICE" = "." ]]; then
       break
     fi
     SELECTED=$(realpath "$SELECTED/$CHOICE")
@@ -81,7 +83,8 @@ function wiz_ask_directory() {
 
 
 function check_is_jarklin() {
-  if [ ! -f "./jarklin" ] || [ "$("./jarklin" --verify-jarklin)" != "jarklin" ]; then
+  executable="${1:-.}/jarklin"
+  if [[ ! -f "$executable" ]] || [ "$("$executable" --verify-jarklin)" != "jarklin" ]; then
     return 1
   fi
   return 0
@@ -98,7 +101,7 @@ function wiz_download_web_ui() {
 
 
 function wizard_install() {
-  if [ ! -w . ]; then
+  if [[ ! -w . ]]; then
       whiptail --title "Jarklin-Wizard - Install" --msgbox "You don't have permissions to install Jarklin here.
 $(pwd)" 20 60
     return 0
@@ -128,11 +131,11 @@ $(pwd)" 20 60
     esac
   done
 
-  if [ $JARKLIN = true ] && [ -d "./jarklin/" ] && ! whiptail --yesno "'$(pwd)/jarklin/' seems to exist. It will be overwritten." 20 60 --yes-button "Continue" --no-button "Cancel"; then
+  if [[ $JARKLIN = true ]] && [[ -d "./jarklin/" ]] && ! whiptail --yesno "'$(pwd)/jarklin/' seems to exist. It will be overwritten." 20 60 --yes-button "Continue" --no-button "Cancel"; then
     return 0;
   fi
 
-  if [ $JARKLIN = true ]; then
+  if [[ $JARKLIN = true ]]; then
     JARKLIN_ARCHIVE="./jarklin.tgz"
 
     info "Downloading Jarklin..."
@@ -151,7 +154,7 @@ $(pwd)" 20 60
     python3 -m pip install -r "./jarklin/requirements.txt" -t "./jarklin/_deps/" --disable-pip-version-check
   fi
 
-  if [ $WEB_UI = true ]; then
+  if [[ $WEB_UI = true ]]; then
     WEB_UI_ARCHIVE="./web-ui.tgz"
     WEB_UI_DIR="./jarklin/web/web-ui/"
 
@@ -167,13 +170,17 @@ $(pwd)" 20 60
     rm "$WEB_UI_ARCHIVE"
   fi
 
-  if [ $BETTER_EXCEPTIONS = true ]; then
+  if [[ $BETTER_EXCEPTIONS = true ]]; then
     info "Installing better-exceptions..."
     python3 -m pip install -U better-exceptions -t "./jarklin/_deps/" --disable-pip-version-check
   fi
 
+  OUTDIR="$(realpath "./jarklin")"
+
   whiptail --title "Jarklin-Wizard - Install" --msgbox "Jarklin was successfully installed.
-$(realpath "./jarklin")" 20 60
+
+Installation: $OUTDIR
+Executable:   $OUTDIR/jarklin" 20 60
 }
 
 function wizard_update() {
@@ -184,11 +191,11 @@ function wizard_update() {
 
 
 function check_can_uninstall() {
-  cd "$ROOT/"
-  if [ ! -w . ]; then
+  # check if we have permissions
+  if [[ ! -w "$ROOT" ]]; then
     return 1
   fi
-  if check_is_jarklin; then
+  if check_is_jarklin "$ROOT"; then
     return 0
   fi
   return 1
@@ -203,7 +210,7 @@ function wizard_uninstall() {
   cd ".."
   if whiptail --title "Jarklin-Wizard - Uninstall" --yesno "Are you sure want to uninstall Jarklin?\n$ROOT/" 20 60; then
     rm -rf "$ROOT"
-    if [ "$CWD" = "$ROOT" ]; then
+    if [[ "$CWD" = "$ROOT" ]]; then
       CWD="$(dirname "$CWD")"
     fi
     ROOT=$(dirname "$ROOT")  # dunno how smart
@@ -218,7 +225,7 @@ function wizard_create_config() {
   DEST=$(wiz_ask_directory --title "$TITLE" --text "Select where you want to create the config-file")
   FP="$DEST/.jarklin.yaml"
 
-  if [ -f "$FP" ]; then
+  if [[ -f "$FP" ]]; then
     if ! whiptail --title "$TITLE" --msgbox "A configuration file already exists. It will be overwritten." 20 60; then
       return 0
     fi
@@ -311,11 +318,11 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
 
   {
     echo "web:"
-    if [ -n "$BASEURL" ]; then
+    if [[ -n "$BASEURL" ]]; then
       echo "  baseurl: \"$BASEURL\""
     fi
     echo "  server:"
-    if [ -n "$UDS" ]; then
+    if [[ -n "$UDS" ]]; then
       echo "    unix_socket: \"$UDS\""
     else
       echo "    host: \"$HOST\""
@@ -324,7 +331,7 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
       echo "    ipv6: yes"
     fi
     echo "    threads: 8  # browsers send ~6 requests at once"
-    if [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
+    if [[ -n "$USERNAME" ]] && [[ -n "$PASSWORD" ]]; then
       echo "  auth:"
       echo "    username: \"$USERNAME\""
       echo "    password: \"$PASSWORD\""
@@ -336,18 +343,18 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
     echo "#    lifetime: 604800  # 1w"
     echo "    refresh_each_request: yes"
     echo "  gzip: $GZIP"
-    if [ $OPTIMIZE_IMAGES = true ] || [ $OPTIMIZE_VIDEOS = true ]; then
+    if [[ $OPTIMIZE_IMAGES = true ]] || [[ $OPTIMIZE_VIDEOS = true ]]; then
       echo "  optimize:"
-      if [ $OPTIMIZE_IMAGES = true ]; then
+      if [[ $OPTIMIZE_IMAGES = true ]]; then
         echo "    image: yes"
       fi
-      if [ $OPTIMIZE_VIDEOS = true ]; then
+      if [[ $OPTIMIZE_VIDEOS = true ]]; then
         echo "    video: yes"
       fi
     fi
     echo "cache:"
     echo "  ignore:"
-    if [ $WHITELIST = true ]; then
+    if [[ $WHITELIST = true ]]; then
       echo "    - \"/*\""
       echo "#    - \"!/allowed\""
     else
@@ -356,7 +363,7 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
     echo "logging:"
     echo "  console: yes"
     echo "  level: $LOGGINGLEVEL"
-    if [ $LOG2FILE = true ]; then
+    if [[ $LOG2FILE = true ]]; then
       echo "  file:"
     fi
 
@@ -366,6 +373,22 @@ Blacklist: directories or files are disabled/hidden" --yes-button "Whitelist" --
 $FP
 
 For more or detailed options see https://jarklin.github.io/config/config-options" 20 60
+}
+
+
+function wizard_update_itself() {
+  SCRIPT_FILE="$(realpath "${BASH_SOURCE[0]:-$0}")"
+  if [[ ! -f "$SCRIPT_FILE" ]]; then
+    >&2 echo "Wizard file does not exist"
+    return 1
+  fi
+  NEW_CONTENT="$(curl -Ls https://github.com/jarklin/jarklin/raw/main/scripts/wizard.sh)"
+  echo "$NEW_CONTENT" > "$SCRIPT_FILE"
+  whiptail --title "$TITLE" --msgbox "Wizard was updated with the latest version
+
+It is highly recommended to restart this script as the running version is the old one
+
+Wizard: $SCRIPT_FILE" 20 60
 }
 
 
@@ -380,6 +403,9 @@ function wizard_main() {
       OPTIONS+=("wizard_uninstall" "Uninstall Jarklin")
     fi
     OPTIONS+=("wizard_create_config" "Generate a new config")
+    if [[ $INTERACTIVE_WITH_CURL != true ]]; then
+      OPTIONS+=("wizard_update_itself" "Update the Wizard")
+    fi
 
     CHOICE=$(whiptail --title "Jarklin-Wizard" --menu "What do you want to do?" 20 60 10 --cancel-button "Exit" --notags \
       "${OPTIONS[@]}" \
