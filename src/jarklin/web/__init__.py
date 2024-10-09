@@ -8,6 +8,7 @@ import logging
 from http import HTTPStatus
 import flask
 from werkzeug.exceptions import Unauthorized as HTTPUnauthorized, BadRequest as HTTPBadRequest, NotFound as HTTPNotFound
+from loggext.decorators import add_logging
 from .utility import requires_authenticated, validate_user, to_bool
 from . import optimization
 
@@ -18,12 +19,14 @@ app = flask.Flask(__name__, static_url_path="/", static_folder=WEB_UI, template_
 
 
 @app.get("/")
+@add_logging()
 def index():
     return app.send_static_file("index.html")
 
 
 @app.get("/files/<path:resource>")
 @requires_authenticated
+@add_logging()
 def files(resource: str):
     attempt_optimization = flask.request.args.get("optimize", default=False, type=to_bool)
     as_download = flask.request.args.get("download", default=False, type=to_bool)
@@ -54,6 +57,7 @@ def files(resource: str):
 
 
 @app.get("/api/config")
+@add_logging()
 def get_config():
     return dict(
         requires_auth=bool(flask.current_app.config.get('USERPASS')),
@@ -62,6 +66,7 @@ def get_config():
 
 
 @app.get("/api/video-resolutions")
+@add_logging()
 def get_video_resolutions():
     return {
         name: info._asdict()
@@ -70,6 +75,7 @@ def get_video_resolutions():
 
 
 @app.get("/auth/username")
+@add_logging()
 def get_username():
     try:
         return flask.session["username"], HTTPStatus.OK
@@ -78,6 +84,7 @@ def get_username():
 
 
 @app.post("/auth/login")
+@add_logging()
 def login():
     userpass = app.config.get('USERPASS')
     if not userpass:
@@ -96,6 +103,7 @@ def login():
 
 
 @app.post("/auth/logout")
+@add_logging()
 def logout():
     if 'username' in flask.session:
         flask.session.pop('username')

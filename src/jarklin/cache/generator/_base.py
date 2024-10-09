@@ -17,6 +17,7 @@ import typing as t
 from pathlib import Path
 from abc import abstractmethod
 from configlib import ConfigInterface
+from loggext.decorators import add_logging
 from ...common.types import PathSource
 
 
@@ -40,6 +41,7 @@ class CacheGenerator:
         return f"<{type(self).__name__}: {self.source.relative_to(self.root)!s}>"
 
     @staticmethod
+    @add_logging()
     def remove(fp: PathSource):
         r"""
         cleanly removes the cache. does not touch manually added files
@@ -82,6 +84,7 @@ class CacheGenerator:
             logger.debug(f"Not removing {fp!s} as it contains unknown files")
 
     @staticmethod
+    @add_logging()
     def is_incomplete(fp: PathSource) -> bool:
         logger.debug(f"Checking if {fp!s} is incomplete")
         fp = Path(fp)
@@ -114,6 +117,7 @@ class CacheGenerator:
         return False
 
     @t.final
+    @add_logging()
     def generate(self) -> None:
         logger.info(f"{self}.generate()")
         if self.dest.is_dir():
@@ -121,21 +125,13 @@ class CacheGenerator:
         self.dest.mkdir(parents=True, exist_ok=True)
 
         try:
-            logger.info(f"{self}.mark_cache()")
             self.mark_cache()
-            logger.info(f"{self}.generate_meta()")
             self.generate_meta()
-            logger.info(f"{self}.generate_previews()")
             self.generate_previews()
-            logger.info(f"{self}.generate_image_preview()")
             self.generate_image_preview()
-            logger.info(f"{self}.generate_animated_preview()")
             self.generate_animated_preview()
-            logger.info(f"{self}.generate_extra()")
             self.generate_extra()
-            logger.info(f"{self}.generate_type()")
             self.generate_type()
-            logger.info(f"{self}.cleanup()")
             self.cleanup()
         except Exception as err:
             logger.error(f"Exception while generating cache ({type(err).__name__}). doing cleanup before re-raising")
@@ -148,23 +144,30 @@ class CacheGenerator:
         self.dest.joinpath("is-cache").touch()
 
     @abstractmethod
+    @add_logging()
     def generate_meta(self) -> None: ...
 
     @abstractmethod
+    @add_logging()
     def generate_previews(self) -> None: ...
 
     @abstractmethod
+    @add_logging()
     def generate_image_preview(self) -> None: ...
 
     @abstractmethod
+    @add_logging()
     def generate_animated_preview(self) -> None: ...
 
+    @add_logging()
     def generate_extra(self) -> None:
         pass
 
     @abstractmethod
+    @add_logging()
     def generate_type(self) -> None: ...
 
+    @add_logging()
     def cleanup(self) -> None:
         pass
 

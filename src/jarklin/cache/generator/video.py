@@ -19,6 +19,7 @@ from contextlib import ExitStack
 from functools import cached_property
 import undertext
 from PIL import Image, ImageStat
+from loggext.decorators import add_logging
 from ...common.types import (
     VideoMeta, VideoStreamMeta, AudioStreamMeta, SubtitleStreamMeta, ChapterMeta
 )
@@ -80,11 +81,13 @@ class VideoCacheGenerator(CacheGenerator):
 
     # ---------------------------------------------------------------------------------------------------------------- #
 
+    @add_logging()
     def generate_meta(self) -> None:
         import json
         with open(self.dest / "meta.json", 'w') as file:
             file.write(json.dumps(self.meta))
 
+    @add_logging()
     def generate_previews(self) -> None:
         main_frames: t.List[int]
         total_frames = self.stat_nb_frames
@@ -148,6 +151,7 @@ class VideoCacheGenerator(CacheGenerator):
             with Image.open(source) as image:
                 image.save(dest, format='WEBP', minimize_size=True, method=6, quality=80)
 
+    @add_logging()
     def generate_image_preview(self) -> None:
         # algorythm to prevent frames/previews of basically only one color.
         # (like completely black from scene-transfer or intro)
@@ -163,6 +167,7 @@ class VideoCacheGenerator(CacheGenerator):
             preview_source = self.previews_dir.joinpath("1.webp")
         shutil.copyfile(preview_source, self.dest.joinpath("preview.webp"))
 
+    @add_logging()
     def generate_animated_preview(self) -> None:
         filepaths = sorted(self.previews_cache.glob("*.webp"), key=lambda f: int(f.stem))
         with ExitStack() as stack:
@@ -171,11 +176,13 @@ class VideoCacheGenerator(CacheGenerator):
             first.save(self.dest.joinpath("animated.webp"), format="WEBP", save_all=True, minimize_size=True,
                        append_images=frames, duration=round(1000 / self.scene_fps), loop=0, method=6, quality=80)
 
+    @add_logging()
     def generate_extra(self) -> None:
         self.generate_storyboard()
         self.generate_chapters_webvtt()
         self.generate_subtitles_webvtt()
 
+    @add_logging()
     def generate_storyboard(self) -> None:
         if not self.thumbnails_enabled:
             return
@@ -231,6 +238,7 @@ class VideoCacheGenerator(CacheGenerator):
         logger.debug(f"{self} - saving storyboard.vtt")
         undertext.dump(vtt_parts, fp=self.dest / "storyboard.vtt")
 
+    @add_logging()
     def generate_chapters_webvtt(self) -> None:
         if not self.chapters:
             logger.debug(f"{self} - no chapters found. no chapters.vtt generated")
@@ -245,6 +253,7 @@ class VideoCacheGenerator(CacheGenerator):
         except Exception as error:
             logger.error(f"{self} - Failed to generate chapters.vtt", exc_info=error)
 
+    @add_logging()
     def generate_subtitles_webvtt(self) -> None:
         if not self.ffprobe.subtitle_streams:
             logger.debug(f"{self} - no subtitles found. no subtitles.{{lang}}.vtt are generated")
@@ -275,9 +284,11 @@ class VideoCacheGenerator(CacheGenerator):
             else:
                 logger.error(f"{self} - Unsupported subtitle formast: {codec}")
 
+    @add_logging()
     def generate_type(self):
         self.dest.joinpath("video.type").touch()
 
+    @add_logging()
     def cleanup(self) -> None:
         shutil.rmtree(self.previews_cache, ignore_errors=True)
         shutil.rmtree(self.thumbnails_cache, ignore_errors=True)
