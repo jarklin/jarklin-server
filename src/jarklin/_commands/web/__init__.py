@@ -55,7 +55,7 @@ def run() -> None:
     app.config['SESSION_REFRESH_EACH_REQUEST'] = \
         config.getbool('web', 'session', 'refresh_each_request', fallback=False)
 
-    if config.gettype('web', 'optimize') is dict:
+    if config.gettype('web', 'optimize', fallback=None) is dict:
         app.config['JIT_OPTIMIZATION'] = {
             key: config.getbool('web', 'optimize', key)
             for key in config.get('web', 'optimize').keys()
