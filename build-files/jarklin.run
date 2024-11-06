@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 set -e
 
-THIS=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
+THIS=$(dirname "$(realpath "$0")")
 PARENT=$(dirname "$THIS")
 PYTHON3=$(which python3)
 DEPENDENCIES="$THIS/_deps/"
