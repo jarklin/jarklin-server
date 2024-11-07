@@ -136,20 +136,12 @@ class SubtitleStream(pydantic.BaseModel, arbitrary_types_allowed=True):
 
 class DataStream(pydantic.BaseModel):
     index: int
-    codec_name: str
-    codec_long_name: str
     codec_type: t.Literal['data']
-    codec_tag_string: str
-    codec_tag: str
 
 
 class AttachmentStream(pydantic.BaseModel):
     index: int
-    codec_name: str
-    codec_long_name: str
     codec_type: t.Literal['attachment']
-    codec_tag_string: str
-    codec_tag: str
 
 
 class Chapter(pydantic.BaseModel, arbitrary_types_allowed=True):
