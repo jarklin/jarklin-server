@@ -1,7 +1,8 @@
-FROM python:3.12-alpine AS base
+ARG PYTHON_VERSION=3.12
 
-RUN apk update
-RUN apk upgrade
+FROM python:${PYTHON_VERSION}-alpine AS base
+
+RUN apk update && apk upgrade --no-cache
 
 FROM base AS builder
 
